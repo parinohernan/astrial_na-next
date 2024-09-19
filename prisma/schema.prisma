@@ -1,0 +1,1921 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model caja_cabeza {
+  DocumentoTipo       String             @db.VarChar(4)
+  DocumentoSucursal   String             @db.VarChar(4)
+  DocumentoNumero     String             @db.VarChar(10)
+  FechaHora           DateTime?          @db.DateTime(0)
+  CodigoUsuario       String?            @db.VarChar(10)
+  ImporteInicial      Float?             @default(0.00)
+  ImporteCierre       Float?             @default(0.00)
+  ImporteCierreFisico Float?             @default(0.00)
+  FechaHoraCierre     DateTime?          @db.DateTime(0)
+  Observaciones       String?            @db.VarChar(250)
+  caja_movimientos    caja_movimientos[] @ignore
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([CodigoUsuario], map: "VendedorCodigo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model caja_movimientos {
+  DocumentoTipo       String      @db.VarChar(4)
+  DocumentoSucursal   String      @db.VarChar(4)
+  DocumentoNumero     String      @db.VarChar(10)
+  CodigoUsuario       String      @db.VarChar(10)
+  FechaHora           DateTime?   @db.DateTime(0)
+  ConceptoCodigo      String?     @db.VarChar(4)
+  ConceptoDescripcion String?     @db.VarChar(250)
+  Importe             Float?
+  Observacion         String?     @db.VarChar(250)
+  caja_cabeza         caja_cabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "caja_movimientos_fk")
+
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@ignore
+}
+
+model cargapordefecto {
+  CodigoUnidad      String            @default("") @db.VarChar(4)
+  CodigoDia         String            @default("") @db.Char(1)
+  CodigoArticulo    String            @db.VarChar(13)
+  ArticuloCantidad  Float             @default(0)
+  t_unidadesmoviles t_unidadesmoviles @relation(fields: [CodigoUnidad], references: [Codigo], onUpdate: Restrict, map: "cargapordefecto_fk1")
+  t_articulos       t_articulos       @relation(fields: [CodigoArticulo], references: [Codigo], onUpdate: Restrict, map: "cargapordefecto_ibfk_1")
+  t_dias            t_dias            @relation(fields: [CodigoDia], references: [Codigo], onUpdate: Restrict, map: "cargapordefecto_ibfk_2")
+
+  @@id([CodigoUnidad, CodigoDia, CodigoArticulo])
+  @@index([CodigoArticulo], map: "CodigoArticulo")
+  @@index([CodigoDia], map: "CodigoDia")
+  @@index([CodigoUnidad], map: "CodigoUnidad")
+}
+
+model cheques {
+  Codigo                   Int              @id
+  Numero                   String?          @db.VarChar(50)
+  FechaEntrada             DateTime?        @db.Date
+  FechaAcredita            DateTime?        @db.Date
+  BancoCodigo              String?          @db.VarChar(20)
+  Importe                  Float?           @default(0.00)
+  ClienteCodigo            String?          @db.VarChar(10)
+  DocumentoEntradaTipo     String?          @db.VarChar(4)
+  DocumentoEntradaSucursal String?          @db.VarChar(4)
+  DocumentoEntradaNumero   String?          @db.VarChar(8)
+  ProveedorCodigo          String?          @db.VarChar(10)
+  DocumentoSalidaTipo      String?          @db.VarChar(4)
+  DocumentoSalidaSucursal  String?          @db.VarChar(4)
+  DocumentoSalidaNumero    String?          @db.VarChar(8)
+  EstadoCodigo             String?          @db.VarChar(2)
+  FechaAnulacion           DateTime?        @db.Date
+  Descripcion              String?          @db.VarChar(254)
+  Observaciones            String?          @db.Text
+  cheques_estados          cheques_estados? @relation(fields: [EstadoCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "cheques_fk")
+  t_bancos                 t_bancos?        @relation(fields: [BancoCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "cheques_fk1")
+
+  @@index([BancoCodigo], map: "BancoCodigo")
+  @@index([ClienteCodigo], map: "ClienteCodigo")
+  @@index([EstadoCodigo], map: "DestinoCodigo")
+  @@index([ProveedorCodigo], map: "ProveedorCodigo")
+}
+
+model cheques_estados {
+  Codigo      String    @id @unique(map: "Codigo_2") @db.VarChar(2)
+  Descripcion String?   @db.VarChar(200)
+  cheques     cheques[]
+
+  @@index([Codigo], map: "Codigo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model clientes_descuentos {
+  ClienteCodigo       String @db.VarChar(10)
+  ArticuloCodigo      String @db.VarChar(10)
+  PorcentajeDescuento Float? @default(0.0000)
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model comisiones_vendedores {
+  VendedorCodigo       String       @db.VarChar(20)
+  ArticuloCodigo       String       @db.VarChar(13)
+  PorcentajeDeComision Float?       @default(0.0000)
+  t_vendedores         t_vendedores @relation(fields: [VendedorCodigo], references: [Codigo], onUpdate: Restrict, map: "comisiones_vendedores_fk")
+  t_articulos          t_articulos  @relation(fields: [ArticuloCodigo], references: [Codigo], onUpdate: Restrict, map: "comisiones_vendedores_fk1")
+
+  @@index([ArticuloCodigo], map: "ArticuloCodigo")
+  @@index([VendedorCodigo, ArticuloCodigo], map: "VendedorCodigo")
+  @@index([VendedorCodigo], map: "VendedorCodigo_2")
+  @@ignore
+}
+
+model comisionescabeza {
+  DocumentoTipo     String            @default("") @db.Char(3)
+  DocumentoSucursal String            @default("") @db.VarChar(4)
+  DocumentoNumero   String            @default("") @db.VarChar(8)
+  Fecha             DateTime          @default(dbgenerated("'0000-00-00'")) @db.Date
+  VentasFechaDesde  DateTime          @default(dbgenerated("'0000-00-00'")) @db.Date
+  VentasFechaHasta  DateTime          @default(dbgenerated("'0000-00-00'")) @db.Date
+  VendedorCodigo    String            @db.VarChar(20)
+  TotalUnidades     Float             @default(0.000)
+  ImporteTotal      Float             @default(0.000)
+  FechaAnulacion    DateTime?         @db.Date
+  t_vendedores      t_vendedores      @relation(fields: [VendedorCodigo], references: [Codigo], onUpdate: Restrict, map: "comisionescabeza_fk")
+  comisionesitems   comisionesitems[] @ignore
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([VendedorCodigo], map: "VendedorCodigo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model comisionesitems {
+  DocumentoTipo       String           @db.VarChar(3)
+  DocumentoSucursal   String           @db.VarChar(4)
+  DocumentoNumero     String           @db.VarChar(8)
+  CodigoArticulo      String?          @db.VarChar(13)
+  DescArticulo        String           @db.VarChar(250)
+  CantArticulo        Float            @default(0.000)
+  PrecioCosto         Float            @default(0.000)
+  PrecioVenta         Float            @default(0.000)
+  PorcentajeVendedor  Float            @default(0.000)
+  ImporteComision     Float            @default(0.000)
+  comisiones_items_id BigInt           @default(0)
+  comisionescabeza    comisionescabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "comisionesitems_ibfk_1")
+
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@ignore
+}
+
+model complementos {
+  ComplementoId Int      @id
+  Assembly      String?  @db.VarChar(100)
+  Clase         String?  @db.VarChar(50)
+  Nombre        String?  @db.VarChar(50)
+  Parametros    String?  @db.VarChar(200)
+  esEXE         Boolean? @default(dbgenerated("b'0'")) @db.Bit(1)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model comprascabeza {
+  DocumentoTipo             String         @default("") @db.Char(3)
+  DocumentoSucursal         String         @default("") @db.VarChar(4)
+  DocumentoNumero           String         @default("") @db.VarChar(8)
+  Fecha                     DateTime?      @db.Date
+  FechaDePago               DateTime?      @db.Date
+  ProveedorCodigo           String         @default("") @db.VarChar(8)
+  TipoPago                  String?        @db.Char(2)
+  ImporteBruto              Float?         @default(0.000)
+  ImporteBonificado         Float?         @default(0.000)
+  ImporteNeto               Float?         @default(0.000)
+  ImporteAdicional          Float?         @default(0.000)
+  ImporteIva1               Float?         @default(0.000)
+  ImporteIva2               Float?         @default(0.000)
+  Percepcion                Float?         @default(0.000)
+  ImporteTotal              Float?         @default(0.000)
+  ImportePagado             Float?         @default(0.000)
+  Observacion               String?        @db.VarChar(300)
+  ObservacionAnula          String?        @db.VarChar(500)
+  RemitoNro                 String?        @db.VarChar(20)
+  OrdenCompraNro            String?        @db.VarChar(8)
+  FechaAnulacion            DateTime?      @db.DateTime(0)
+  Anulado                   Boolean        @default(false)
+  IngresosBrutos            Float?         @default(0.000)
+  OtrosImpuestos1           Float?         @default(0.000)
+  OtrosImpuestos2           Float?         @default(0.000)
+  OtrosImpuestos3           Float?         @default(0.000)
+  t_proveedores             t_proveedores  @relation(fields: [ProveedorCodigo], references: [Codigo], onUpdate: Restrict, map: "comprascabeza_ibfk_1")
+  comprasitems              comprasitems[]
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, ProveedorCodigo])
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@index([ProveedorCodigo], map: "ProveedorCodigo")
+  @@ignore
+}
+
+model comprasitems {
+  DocumentoTipo       String         @default("") @db.Char(3)
+  DocumentoSucursal   String         @default("") @db.VarChar(4)
+  DocumentoNumero     String         @default("") @db.VarChar(8)
+  ProveedorCodigo     String?        @db.VarChar(7)
+  CodigoArticulo      String         @default("") @db.VarChar(13)
+  Cantidad            Float?
+  PrecioCostoUnitario Float?
+  t_articulos         t_articulos    @relation(fields: [CodigoArticulo], references: [Codigo], onUpdate: Restrict, map: "comprasitems_fk")
+  comprascabeza       comprascabeza? @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero, ProveedorCodigo], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero, ProveedorCodigo], onUpdate: Restrict, map: "comprasitems_ibfk_1") @ignore
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodigoArticulo])
+  @@index([CodigoArticulo], map: "CodigoArticulo")
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero, ProveedorCodigo], map: "DocumentoTipo_2")
+  @@unique([DocumentoTipo, DocumentoSucursal, DocumentoNumero, ProveedorCodigo])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model configuracionpantallas {
+  Pantalla  String? @db.VarChar(50)
+  Control   String? @db.VarChar(50)
+  Propiedad String? @db.VarChar(50)
+  Valor     String? @db.VarChar(50)
+
+  @@ignore
+}
+
+model datosempresa {
+  RazonSocial        String  @id @default("") @db.VarChar(50)
+  Domicilio          String? @db.VarChar(70)
+  Localidad          String? @db.VarChar(50)
+  Telefono           String? @db.VarChar(50)
+  EMail              String? @db.VarChar(100)
+  Sucursal           String? @db.VarChar(4)
+  Cuit               String? @db.VarChar(13)
+  PuertoFiscal       Int?    @db.UnsignedTinyInt
+  CategoriaIva       String? @db.Char(1)
+  IngresosBrutos     String? @db.VarChar(40)
+  DomicilioComercial String? @db.VarChar(80)
+  DomicilioFiscal    String? @db.VarChar(80)
+  PieCero            String? @db.VarChar(40)
+  PieUno             String? @db.VarChar(40)
+  PieDos             String? @db.VarChar(40)
+  PieTres            String? @db.VarChar(40)
+}
+
+model dias_de_visita {
+  ClienteCodigo  String    @db.VarChar(8)
+  VendedorCodigo String    @db.VarChar(8)
+  DiaCodigo      String    @db.Char(1)
+  Observaciones  String?   @db.Text
+  HoraDesde      DateTime? @db.Time(0)
+  HoraHasta      DateTime? @db.Time(0)
+  orden          Int?
+
+  @@id([ClienteCodigo, VendedorCodigo, DiaCodigo])
+}
+
+model documentos_deuda {
+  documento_tipo     String    @db.VarChar(3)
+  documento_sucursal String    @db.VarChar(4)
+  documento_numero   String    @db.VarChar(8)
+  fecha              DateTime? @db.Date
+  codigo_cliente     String?   @db.VarChar(10)
+  importe_total      Float?
+  importe_pagado     Float?
+  importe_deuda      Float?
+
+  @@id([documento_tipo, documento_sucursal, documento_numero])
+  @@index([codigo_cliente], map: "documentos_deuda_idx2")
+}
+
+model facturacabeza {
+  DocumentoTipo             String               @default("") @db.Char(3)
+  DocumentoSucursal         String               @default("") @db.VarChar(4)
+  DocumentoNumero           String               @default("") @db.VarChar(8)
+  Fecha                     DateTime?            @db.Date
+  ClienteCodigo             String?              @db.VarChar(8)
+  VendedorCodigo            String?              @db.VarChar(20)
+  PagoTipo                  String?              @db.Char(2)
+  ImporteBruto              Float?               @default(0.000)
+  PorcentajeBonificacion    Float?               @default(0.00)
+  ImporteBonificado         Float?               @default(0.000)
+  ImporteNeto               Float?               @default(0.000)
+  ImporteAdicional          Float?               @default(0.000)
+  ImporteIva1               Float?               @default(0.000)
+  ImporteIva2               Float?               @default(0.000)
+  BaseImponible1            Float?               @default(0.000)
+  BaseImponible2            Float?               @default(0.000)
+  ImporteTotal              Float?               @default(0.000)
+  ImportePagado             Float?               @default(0.000)
+  PorcentajeIva1            Float?               @default(0.000)
+  PorcentajeIva2            Float?               @default(0.000)
+  ListaNumero               Int?                 @default(0) @db.UnsignedTinyInt
+  FechaAnulacion            DateTime?            @db.DateTime(0)
+  Observacion               String?              @db.VarChar(500)
+  CodigoUsuario             String?              @db.VarChar(10)
+  CajaNumero                String?              @db.VarChar(10)
+  afip_cae                  String?              @db.VarChar(100)
+  afip_cae_observaciones    String?              @db.VarChar(254)
+  afip_cae_vencimiento      DateTime?            @db.Date
+  orden_entrega_id          Int?
+  TransporteCodigo          String?              @db.VarChar(3)
+  PorcentajePercepcionIIBB  Float?               @default(0.000)
+  ImportePercepcionIIBB     Float?               @default(0.000)
+  FechaVencimiento          DateTime?            @db.Date
+  t_clientes                t_clientes?          @relation(fields: [ClienteCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "facturacabeza_fk")
+  t_usuarios                t_usuarios?          @relation(fields: [CodigoUsuario], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "facturacabeza_fk1")
+  t_vendedores              t_vendedores?        @relation(fields: [VendedorCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "facturacabeza_fk2")
+  facturaitems              facturaitems[]       @ignore
+  orden_entrega_items       orden_entrega_items?
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([ClienteCodigo], map: "ClienteCodigo")
+  @@index([CodigoUsuario], map: "CodigoUsuario")
+  @@index([DocumentoSucursal], map: "DocumentoSucursal")
+  @@index([Fecha], map: "Fecha")
+  @@index([VendedorCodigo], map: "VendedorCodigo")
+  @@index([orden_entrega_id], map: "orden_entrega_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model facturaitems {
+  DocumentoTipo        String        @default("") @db.Char(3)
+  DocumentoSucursal    String        @default("") @db.VarChar(4)
+  DocumentoNumero      String        @default("") @db.VarChar(8)
+  CodigoArticulo       String?       @db.VarChar(13)
+  Cantidad             Float?
+  ImporteCosto         Float         @default(0.000)
+  PrecioLista          Float         @default(0.000)
+  PorcentajeBonificado Float         @default(0.000)
+  ImporteBonificado    Float         @default(0.000)
+  PrecioUnitario       Float?
+  DocumentoLiqTipo     String?       @db.VarChar(3)
+  DocumentoLiqSucursal String?       @db.VarChar(4)
+  DocumentoLiqNumero   String?       @db.VarChar(8)
+  LiqFecha             DateTime?     @db.Date
+  es_merma             Int?          @default(0) @db.TinyInt
+  facturacabeza        facturacabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "facturaitems_ibfk_1")
+
+  @@index([CodigoArticulo], map: "CodigoArticulo")
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@ignore
+}
+
+model gastoscabeza {
+  DocumentoTipo     String        @default("") @db.Char(3)
+  DocumentoSucursal String        @default("") @db.VarChar(4)
+  DocumentoNumero   String        @default("") @db.VarChar(8)
+  Fecha             DateTime      @default(dbgenerated("'0000-00-00'")) @db.Date
+  ImporteTotal      Float         @default(0.000)
+  Observacion       String?       @db.TinyText
+  gastositems       gastositems[]
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+}
+
+model gastositems {
+  DocumentoTipo       String              @default("") @db.Char(3)
+  DocumentoSucursal   String              @default("") @db.VarChar(4)
+  DocumentoNumero     String              @default("") @db.VarChar(8)
+  CodigoGasto         String              @default("") @db.VarChar(4)
+  CodigoTipoDeGasto   String              @default("") @db.VarChar(4)
+  Importe             Float               @default(0.00)
+  Observacion         String?             @db.VarChar(50)
+  gastoscabeza        gastoscabeza        @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "gastositems_ibfk_1")
+  t_tiposdegastos     t_tiposdegastos     @relation(fields: [CodigoTipoDeGasto], references: [Codigo], onUpdate: Restrict, map: "gastositems_ibfk_2")
+  t_gastosdescripcion t_gastosdescripcion @relation(fields: [CodigoGasto], references: [Codigo], onUpdate: Restrict, map: "gastositems_ibfk_3")
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodigoGasto, CodigoTipoDeGasto])
+  @@index([CodigoGasto], map: "CodigoGasto")
+  @@index([CodigoTipoDeGasto], map: "CodigoTipoDeGasto")
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model geolocalizacion {
+  Codigo         Int
+  Fecha          DateTime? @db.DateTime(0)
+  VendedorCodigo String?   @db.VarChar(8)
+  SucursalCodigo Int?
+  Longitud       Float?
+  Latitud        Float?
+
+  @@ignore
+}
+
+model ger_t_agrupaciones {
+  Codigo      Int     @id @default(autoincrement())
+  Descripcion String? @db.VarChar(50)
+}
+
+model ger_t_agrupaciones_grupos {
+  codigo           Int     @id @default(autoincrement())
+  descripcion      String? @db.VarChar(100)
+  agrupacioncodigo Int?
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model ger_t_agrupaciones_grupos_articulos {
+  AgrupacionGrupoCodigo Int?
+  ArticuloCodigo        String? @db.VarChar(20)
+
+  @@index([AgrupacionGrupoCodigo], map: "AgrupacionGrupoCodigo")
+  @@index([ArticuloCodigo], map: "ArticuloCodigo")
+  @@ignore
+}
+
+model ger_t_canales_grupos {
+  codigo      Int     @id @default(autoincrement())
+  descripcion String? @db.VarChar(100)
+}
+
+model listasdeprecios {
+  Id          Int     @id @default(autoincrement())
+  Descripcion String? @db.VarChar(50)
+  Ocultar     String? @db.VarChar(8)
+}
+
+model menu {
+  Codigo     String  @id @unique(map: "Item") @db.VarChar(30)
+  Habilitado Boolean @default(false)
+}
+
+model movimientospasajearticulos {
+  DocumentoTipo     String   @default("") @db.Char(3)
+  DocumentoSucursal String   @default("") @db.VarChar(4)
+  DocumentoNumero   String   @default("") @db.VarChar(8)
+  CodigoUOrigen     String   @default("") @db.VarChar(4)
+  CodigoUDestino    String   @default("") @db.VarChar(4)
+  CodigoArticulo    String   @default("") @db.VarChar(13)
+  Cantidad          Float    @default(0.00)
+  Fecha             DateTime @db.DateTime(0)
+  Observacion       String?  @db.VarChar(250)
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodigoUOrigen, CodigoUDestino, CodigoArticulo])
+  @@index([CodigoArticulo], map: "CodigoArticulo")
+  @@index([Fecha], map: "Fecha")
+}
+
+model movimientosstock {
+  DocumentoTipo     String   @default("") @db.Char(3)
+  DocumentoSucursal String   @default("") @db.VarChar(4)
+  DocumentoNumero   String   @default("") @db.VarChar(8)
+  Fecha             DateTime @db.Date
+  CodigoArticulo    String   @default("") @db.VarChar(13)
+  Cantidad          Float    @default(0.00)
+  MovimientoTipo    String?  @db.Char(3)
+  Observacion       String?  @db.VarChar(200)
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodigoArticulo])
+  @@index([CodigoArticulo, Fecha], map: "CodigoArticulo")
+}
+
+model notacreditocabeza {
+  DocumentoTipo             String               @default("") @db.Char(3)
+  DocumentoSucursal         String               @default("") @db.VarChar(4)
+  DocumentoNumero           String               @default("") @db.VarChar(8)
+  CodigoCliente             String               @db.VarChar(8)
+  Fecha                     DateTime             @default(dbgenerated("'0000-00-00'")) @db.Date
+  ImporteTotal              Float?               @default(0.000)
+  ImporteUtilizado          Float?               @default(0.000)
+  FechaAnulacion            DateTime?            @db.Date
+  ImporteNeto               Float?               @default(0.000)
+  ImporteIva1               Float?               @default(0.000)
+  ImporteIva2               Float?               @default(0.000)
+  BaseImponible1            Float?               @default(0.000)
+  BaseImponible2            Float?               @default(0.000)
+  PorcentajeIva1            Float?               @default(0.000)
+  PorcentajeIva2            Float?               @default(0.000)
+  ListaNumero               Boolean?             @default(false)
+  Observacion               String?              @db.VarChar(1000)
+  PorStock                  Boolean?             @default(false)
+  CodigoUsuario             String?              @db.VarChar(10)
+  CajaNumero                String?              @db.VarChar(10)
+  CodigoVendedor            String               @default("") @db.VarChar(20)
+  ImporteBruto              Float?               @default(0.000)
+  ImporteBonificado         Float?               @default(0.000)
+  ImporteAdicional          Float?               @default(0.000)
+  afip_cae                  String?              @db.VarChar(100)
+  afip_cae_observaciones    String?              @db.VarChar(254)
+  afip_cae_vencimiento      DateTime?            @db.Date
+  factura_tipo              String?              @db.VarChar(4)
+  factura_sucursal          String?              @db.VarChar(4)
+  factura_numero            String?              @db.VarChar(8)
+  t_clientes                t_clientes           @relation(fields: [CodigoCliente], references: [Codigo], onUpdate: Restrict, map: "notacreditocabeza_fk")
+  t_usuarios                t_usuarios?          @relation(fields: [CodigoUsuario], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "notacreditocabeza_fk1")
+  notacreditoitems          notacreditoitems[]   @ignore
+  notacreditovalores        notacreditovalores[] @ignore
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([CodigoCliente], map: "CodigoCliente")
+  @@index([CodigoUsuario], map: "CodigoUsuario")
+  @@index([CodigoVendedor], map: "CodigoVendedor")
+  @@index([Fecha], map: "Fecha")
+  @@index([PorStock], map: "PorStock")
+  @@index([factura_tipo, factura_sucursal, factura_numero], map: "factura")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model notacreditoitems {
+  DocumentoTipo        String            @default("") @db.Char(3)
+  DocumentoSucursal    String            @default("") @db.VarChar(4)
+  DocumentoNumero      String            @default("") @db.VarChar(8)
+  CodigoArticulo       String?           @db.VarChar(13)
+  Cantidad             Float?            @default(0.00)
+  PrecioUnitario       Float?            @default(0.00)
+  DocumentoLiqTipo     String?           @db.VarChar(3)
+  DocumentoLiqSucursal String?           @db.VarChar(4)
+  DocumentoLiqNumero   String?           @db.VarChar(8)
+  LiqFecha             DateTime?         @db.Date
+  t_articulos          t_articulos?      @relation(fields: [CodigoArticulo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "notacreditoitems_fk")
+  notacreditocabeza    notacreditocabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "notacreditoitems_ibfk_1")
+
+  @@index([CodigoArticulo], map: "CodigoArticulo")
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodigoArticulo], map: "DocumentoTipo")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model notacreditovalores {
+  DocumentoTipo      String            @default("") @db.Char(3)
+  DocumentoSucursal  String            @default("") @db.VarChar(4)
+  DocumentoNumero    String            @default("") @db.VarChar(8)
+  ValorCodigo        String            @default("") @db.VarChar(4)
+  ValorFecha         DateTime?         @db.Date
+  ValorNumero        String?           @db.VarChar(50)
+  Valorbanco         String?           @db.VarChar(4)
+  ValorImporte       Float?            @default(0.000)
+  ChequeCodigo       Int?
+  ValorObservaciones String?           @db.Text
+  notacreditocabeza  notacreditocabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "notacreditovalores_ibfk_1")
+
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@ignore
+}
+
+model notadebitocabeza {
+  DocumentoTipo             String            @default("") @db.Char(3)
+  DocumentoSucursal         String            @default("") @db.VarChar(4)
+  DocumentoNumero           String            @default("") @db.VarChar(8)
+  ClienteCodigo             String            @db.VarChar(8)
+  Fecha                     DateTime          @default(dbgenerated("'0000-00-00'")) @db.Date
+  ImporteTotal              Float?
+  ImportePagado             Float?
+  FechaAnulacion            DateTime?         @db.DateTime(0)
+  CodigoUsuario             String            @default("") @db.VarChar(10)
+  VendedorCodigo            String            @default("") @db.VarChar(20)
+  ImporteNeto               Float?            @default(0.0000)
+  ImporteIva1               Float?            @default(0.0000)
+  t_clientes                t_clientes        @relation(fields: [ClienteCodigo], references: [Codigo], onUpdate: Restrict, map: "notadebitocabeza_fk")
+  t_vendedores              t_vendedores      @relation(fields: [VendedorCodigo], references: [Codigo], onUpdate: Restrict, map: "notadebitocabeza_fk1")
+  notadebitoitems           notadebitoitems[] @ignore
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([ClienteCodigo], map: "ClienteCodigo")
+  @@index([Fecha], map: "Fecha")
+  @@index([VendedorCodigo], map: "VendedorCodigo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model notadebitoitems {
+  DocumentoTipo     String           @default("") @db.Char(3)
+  DocumentoSucursal String           @default("") @db.VarChar(4)
+  DocumentoNumero   String           @default("") @db.VarChar(8)
+  Descripcion       String           @db.VarChar(254)
+  Importe           Float?           @default(0.000)
+  notadebitocabeza  notadebitocabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "notadebitoitems_ibfk_1")
+
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@ignore
+}
+
+model orden_entrega_cabeza {
+  id                  Int                   @id @default(autoincrement())
+  fecha               DateTime?             @db.Date
+  usuario_codigo      String?               @db.VarChar(20)
+  importe_total       Float?                @default(0.000)
+  fecha_anulacion     DateTime?             @db.Date
+  transporte_codigo   String                @db.VarChar(3)
+  fecha_hora_cierre   DateTime?             @db.DateTime(0)
+  t_transportes       t_transportes         @relation(fields: [transporte_codigo], references: [Codigo], onUpdate: Restrict, map: "orden_entrega_cabeza_fk")
+  t_usuarios          t_usuarios?           @relation(fields: [usuario_codigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "orden_entrega_cabeza_fk1")
+  orden_entrega_items orden_entrega_items[]
+
+  @@index([transporte_codigo], map: "transporte_codigo")
+  @@index([usuario_codigo], map: "usuario_codigo")
+}
+
+model orden_entrega_items {
+  id                      Int                  @id @default(autoincrement())
+  orden_entrega_cabeza_id Int
+  factura_tipo            String?              @db.Char(3)
+  factura_sucursal        String?              @db.VarChar(4)
+  factura_numero          String?              @db.VarChar(8)
+  orden_entrega_cabeza    orden_entrega_cabeza @relation(fields: [orden_entrega_cabeza_id], references: [id], onUpdate: Restrict, map: "orden_entrega_items_fk")
+  facturacabeza           facturacabeza?       @relation(fields: [factura_tipo, factura_sucursal, factura_numero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onDelete: Restrict, onUpdate: Restrict, map: "orden_entrega_items_fk1")
+
+  @@unique([factura_tipo, factura_sucursal, factura_numero], map: "factura_tipo")
+  @@index([orden_entrega_cabeza_id], map: "orden_entrega_cabeza_id")
+}
+
+model ordencargacabeza {
+  DocumentoTipo     String            @default("") @db.Char(3)
+  DocumentoSucursal String            @default("") @db.VarChar(4)
+  DocumentoNumero   String            @default("") @db.VarChar(8)
+  Fecha             DateTime          @default(dbgenerated("'0000-00-00'")) @db.Date
+  FechaPedidosHasta DateTime?         @db.Date
+  CodigoUMovil      String            @db.VarChar(4)
+  CodigoDia         String            @default("") @db.Char(1)
+  CantArticulos     Float?            @default(0.00)
+  PesoDeCarga       Float?            @default(0.00)
+  FechaAnulacion    DateTime?         @db.DateTime(0)
+  OrdenCerrada      Int?              @db.UnsignedTinyInt
+  t_unidadesmoviles t_unidadesmoviles @relation(fields: [CodigoUMovil], references: [Codigo], onUpdate: Restrict, map: "ordencargacabeza_ibfk_1")
+  ordencargaitems   ordencargaitems[]
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([CodigoUMovil], map: "CodigoUMovil")
+}
+
+model ordencargaitems {
+  DocumentoTipo     String           @default("") @db.Char(3)
+  DocumentoSucursal String           @default("") @db.VarChar(4)
+  DocumentoNumero   String           @default("") @db.VarChar(8)
+  CodigoArticulo    String           @default("") @db.VarChar(13)
+  Cantidad          Float            @default(0.00)
+  ordencargacabeza  ordencargacabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "ordencargaitems_ibfk_1")
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodigoArticulo])
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model paneles {
+  usuario_codigo String   @db.VarChar(20)
+  panel_name     String   @db.VarChar(50)
+  position_top   Float
+  position_left  Float
+  loaded         Boolean? @default(false)
+
+  @@unique([usuario_codigo, panel_name], map: "usuario_panel")
+  @@index([usuario_codigo], map: "usuario_codigo")
+}
+
+model pedidoscabeza {
+  DocumentoTipo     String            @default("") @db.VarChar(3)
+  DocumentoSucursal String            @default("") @db.VarChar(8)
+  DocumentoNumero   String            @default("") @db.VarChar(8)
+  CodigoCliente     String?           @db.VarChar(8)
+  CodigoUMovil      String            @db.VarChar(4)
+  FechaEmicion      DateTime          @default(dbgenerated("'0000-00-00'")) @db.Date
+  FechaEntrega      DateTime?         @db.Date
+  FechaEnviado      DateTime?         @db.Date
+  CantidadArticulos Float?
+  PesoDeCarga       Float?
+  Observacion       String?           @db.VarChar(10)
+  FechaAnulacion    DateTime?         @db.Date
+  t_clientes        t_clientes?       @relation(fields: [CodigoCliente], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "pedidoscabeza_fk")
+  t_unidadesmoviles t_unidadesmoviles @relation(fields: [CodigoUMovil], references: [Codigo], onUpdate: Restrict, map: "pedidoscabeza_ibfk_2")
+  pedidositems      pedidositems[]
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([CodigoCliente], map: "CodigoCliente")
+  @@index([CodigoUMovil], map: "CodigoUMovil")
+}
+
+model pedidositems {
+  DocumentoTipo     String        @default("") @db.VarChar(3)
+  DocumentoSucursal String        @default("") @db.VarChar(4)
+  DocumentoNumero   String        @default("") @db.VarChar(8)
+  CodigoArticulo    String        @default("") @db.VarChar(13)
+  Cantidad          Float?        @default(0.00)
+  t_articulos       t_articulos   @relation(fields: [CodigoArticulo], references: [Codigo], onUpdate: Restrict, map: "pedidositems_fk")
+  pedidoscabeza     pedidoscabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "pedidositems_ibfk_1")
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodigoArticulo])
+  @@index([CodigoArticulo], map: "CodigoArticulo")
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+}
+
+model planesdepago {
+  PlanesDePagoId      Int       @id @default(autoincrement())
+  Fecha               DateTime? @db.Date
+  FacturaTipo         String?   @db.VarChar(3)
+  FacturaSucursal     Int?
+  FacturaNumero       Int?
+  ImporteAdelanto     Float?
+  CantidadDeCuotas    Int?
+  ImportePorCuota     Float?    @default(0.000)
+  Adelanto            Float?    @default(0.000)
+  ImporteAFinanciar   Float?    @default(0.000)
+  ImporteTotal        Float?    @default(0.000)
+  PorcentajeIntereses Float?
+  FechaAnulacion      DateTime? @db.Date
+}
+
+model presupuestocabeza {
+  DocumentoTipo          String             @default("") @db.Char(3)
+  DocumentoSucursal      String             @default("") @db.VarChar(4)
+  DocumentoNumero        String             @default("") @db.VarChar(8)
+  Fecha                  DateTime?          @db.DateTime(0)
+  ClienteCodigo          String?            @db.VarChar(7)
+  PagoTipo               String?            @db.Char(2)
+  VendedorCodigo         String?            @db.VarChar(20)
+  ImporteBruto           Float?             @default(0.00)
+  PorcentajeBonificacion Float?             @default(0.00)
+  ImporteBonificado      Float?             @default(0.00)
+  ImporteNeto            Float?             @default(0.00)
+  ImporteTotal           Float?             @default(0.00)
+  ImportePagado          Float?             @default(0.00)
+  ListaNumero            Int?               @default(0) @db.UnsignedTinyInt
+  FechaAnulacion         DateTime?          @db.DateTime(0)
+  Observacion            String?            @default("200") @db.VarChar(50)
+  t_clientes             t_clientes?        @relation(fields: [ClienteCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "presupuestocabeza_ibfk_1")
+  presupuestoitems       presupuestoitems[]
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([ClienteCodigo], map: "ClienteCodigo")
+}
+
+model presupuestoitems {
+  DocumentoTipo     String            @default("") @db.Char(3)
+  DocumentoSucursal String            @default("") @db.VarChar(4)
+  DocumentoNumero   String            @default("") @db.VarChar(8)
+  CodigoArticulo    String            @default("") @db.VarChar(13)
+  Cantidad          Float?            @default(0.00)
+  PrecioUnitario    Float?            @default(0.000)
+  presupuestocabeza presupuestocabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "presupuestoitems_ibfk_1")
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodigoArticulo])
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model preventa_cabeza {
+  DocumentoTipo          String           @default("") @db.Char(3)
+  DocumentoSucursal      String           @default("") @db.VarChar(4)
+  DocumentoNumero        String           @default("") @db.VarChar(8)
+  Fecha                  DateTime?        @db.DateTime(0)
+  ClienteCodigo          String?          @db.VarChar(8)
+  VendedorCodigo         String?          @db.VarChar(20)
+  PagoTipo               String?          @db.Char(2)
+  ImporteBruto           Float?           @default(0.000)
+  PorcentajeBonificacion Float?           @default(0.00)
+  ImporteBonificado      Float?           @default(0.000)
+  ImporteNeto            Float?           @default(0.000)
+  ImporteAdicional       Float?           @default(0.000)
+  ImporteIva1            Float?           @default(0.000)
+  ImporteIva2            Float?           @default(0.000)
+  ImporteTotal           Float?           @default(0.000)
+  ImportePagado          Float?           @default(0.000)
+  PorcentajeIva1         Float?           @default(0.000)
+  PorcentajeIva2         Float?           @default(0.000)
+  ListaNumero            Int?             @default(0) @db.UnsignedTinyInt
+  FechaAnulacion         DateTime?        @db.Date
+  Observacion            String?          @db.VarChar(200)
+  FacturaTipo            String?          @db.VarChar(3)
+  FacturaSucursal        String?          @db.VarChar(4)
+  FacturaNumero          String?          @db.VarChar(8)
+  FechaEntrega           DateTime?        @db.Date
+  FechaHoraEnvio         DateTime?        @db.DateTime(0)
+  t_clientes             t_clientes?      @relation(fields: [ClienteCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "preventa_cabeza_fk")
+  preventa_items         preventa_items[]
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([ClienteCodigo], map: "ClienteCodigo")
+  @@index([ClienteCodigo, VendedorCodigo], map: "ClienteCodigo_2")
+  @@index([DocumentoSucursal], map: "DocumentoSucursal")
+  @@index([VendedorCodigo], map: "VendedorCodigo")
+}
+
+model preventa_items {
+  DocumentoTipo          String          @default("") @db.Char(3)
+  DocumentoSucursal      String          @default("") @db.VarChar(4)
+  DocumentoNumero        String          @default("") @db.VarChar(8)
+  CodigoArticulo         String          @default("") @db.VarChar(13)
+  Cantidad               Float?
+  PrecioUnitario         Float?
+  DocumentoLiqTipo       String?         @db.Char(3)
+  DocumentoLiqSucursal   String?         @db.VarChar(4)
+  DocumentoLiqNumero     String?         @db.VarChar(8)
+  LiqFecha               DateTime?       @db.Date
+  PrecioLista            Float?          @default(0.000)
+  PorcentajeBonificacion Float?          @default(0.000)
+  preventa_cabeza        preventa_cabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "preventa_items_fk")
+  t_articulos            t_articulos     @relation(fields: [CodigoArticulo], references: [Codigo], onUpdate: Restrict, map: "preventa_items_fk1")
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodigoArticulo])
+  @@index([CodigoArticulo], map: "CodigoArticulo")
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+}
+
+model proveedores_retenciones {
+  id                              Int                    @id @default(autoincrement())
+  proveedor_codigo                String                 @db.VarChar(20)
+  fecha                           DateTime               @db.Date
+  documento_tipo                  String?                @db.VarChar(4)
+  documento_sucursal              String?                @db.VarChar(4)
+  documento_numero                String?                @db.VarChar(8)
+  importe_total                   Float?
+  importe_retencion               Float?
+  fecha_anulacion                 DateTime?              @db.Date
+  aplica_retencion_general_codigo String?                @db.VarChar(2)
+  retenciones_generales           retenciones_generales? @relation(fields: [aplica_retencion_general_codigo], references: [codigo], onDelete: Restrict, onUpdate: Restrict, map: "proveedores_retenciones_fk")
+  t_proveedores                   t_proveedores          @relation(fields: [proveedor_codigo], references: [Codigo], onUpdate: Restrict, map: "proveedores_retenciones_fk1")
+
+  @@index([aplica_retencion_general_codigo], map: "aplica_retencion_general_codigo")
+  @@index([proveedor_codigo], map: "proveedor_codigo")
+}
+
+model proveedoresnotacreditocabeza {
+  DocumentoTipo                 String                          @default("") @db.Char(4)
+  DocumentoSucursal             String                          @default("") @db.VarChar(4)
+  DocumentoNumero               String                          @default("") @db.VarChar(8)
+  CodigoProveedor               String                          @db.VarChar(8)
+  Fecha                         DateTime                        @default(dbgenerated("'0000-00-00'")) @db.Date
+  ImporteTotal                  Float?                          @default(0.000)
+  ImporteUtilizado              Float?                          @default(0.000)
+  FechaAnulacion                DateTime?                       @db.DateTime(0)
+  ImporteNeto                   Float?                          @default(0.000)
+  ImporteIVA1                   Float?                          @default(0.000)
+  OtrosImpuestos1               Float?                          @default(0.000)
+  ImporteIva2                   Float?                          @default(0.000)
+  ImporteIIBB                   Float?                          @default(0.000)
+  OtrosImpuestos2               Float?                          @default(0.000)
+  OtrosImpuestos3               Float?                          @default(0.000)
+  ImporteBruto                  Float                           @default(0.000)
+  ImporteBonificado             Float                           @default(0.000)
+  por_stock                     Boolean?                        @default(false)
+  TipoPago                      String                          @db.VarChar(4)
+  proveedoresnotacreditovalores proveedoresnotacreditovalores[] @ignore
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([CodigoProveedor], map: "CodigoProveedor")
+}
+
+model proveedoresnotacreditoitems {
+  DocumentoTipo       String  @default("") @db.Char(4)
+  DocumentoSucursal   String  @default("") @db.VarChar(4)
+  DocumentoNumero     String  @default("") @db.VarChar(8)
+  ProveedorCodigo     String? @db.VarChar(7)
+  CodigoArticulo      String  @default("") @db.VarChar(13)
+  Cantidad            Float?
+  PrecioCostoUnitario Float?
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodigoArticulo])
+  @@index([CodigoArticulo], map: "CodigoArticulo")
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero, ProveedorCodigo], map: "DocumentoTipo_2")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model proveedoresnotacreditovalores {
+  DocumentoTipo                String                       @default("") @db.Char(4)
+  DocumentoSucursal            String                       @default("") @db.VarChar(4)
+  DocumentoNumero              String                       @default("") @db.VarChar(8)
+  ValorCodigo                  String                       @default("") @db.VarChar(4)
+  ValorFecha                   DateTime?                    @db.Date
+  ValorNumero                  String?                      @db.VarChar(50)
+  Valorbanco                   String?                      @db.VarChar(4)
+  ValorImporte                 Float?
+  ChequeCodigo                 Int?
+  proveedoresnotacreditocabeza proveedoresnotacreditocabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "proveedoresnotacreditovalores_ibfk_1")
+
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@ignore
+}
+
+model proveedoresnotadebitocabeza {
+  DocumentoTipo              String                       @default("") @db.Char(4)
+  DocumentoSucursal          String                       @default("") @db.VarChar(4)
+  DocumentoNumero            String                       @default("") @db.VarChar(8)
+  ProveedorCodigo            String                       @db.VarChar(8)
+  Fecha                      DateTime                     @default(dbgenerated("'0000-00-00'")) @db.Date
+  ImporteTotal               Float?                       @default(0.000)
+  ImportePagado              Float?                       @default(0)
+  FechaAnulacion             DateTime?                    @db.Date
+  ImporteNeto                Float?                       @default(0.00)
+  ImporteIVA1                Float?                       @default(0.00)
+  OtrosImpuestos             Float?                       @default(0.00)
+  ImporteIVA2                Float?                       @default(0.00)
+  ImporteIIBB                Float?                       @default(0.00)
+  OtrosImpuestos2            Float?                       @default(0.00)
+  OtrosImpuestos3            Float?                       @default(0.00)
+  t_proveedores              t_proveedores                @relation(fields: [ProveedorCodigo], references: [Codigo], onUpdate: Restrict, map: "proveedoresnotadebitocabeza_ibfk_1")
+  proveedoresnotadebitoitems proveedoresnotadebitoitems[] @ignore
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([ProveedorCodigo], map: "ProveedorCodigo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model proveedoresnotadebitoitems {
+  DocumentoTipo               String                      @default("") @db.Char(4)
+  DocumentoSucursal           String                      @default("") @db.VarChar(4)
+  DocumentoNumero             String                      @default("") @db.VarChar(8)
+  Descripcion                 String                      @db.VarChar(254)
+  Importe                     Float?
+  proveedoresnotadebitocabeza proveedoresnotadebitocabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "proveedoresnotadebitoitems_ibfk_1")
+
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@ignore
+}
+
+model proveedoresreciboscabeza {
+  DocumentoTipo             String                      @default("") @db.Char(3)
+  DocumentoSucursal         String                      @default("") @db.VarChar(4)
+  DocumentoNumero           String                      @default("") @db.VarChar(8)
+  Fecha                     DateTime                    @db.Date
+  ProveedorCodigo           String                      @default("") @db.VarChar(8)
+  ImporteTotal              Float?
+  FechaAnulacion            DateTime?                   @db.DateTime(0)
+  VendedorCodigo            String?                     @db.VarChar(20)
+  t_proveedores             t_proveedores               @relation(fields: [ProveedorCodigo], references: [Codigo], onUpdate: Restrict, map: "proveedoresreciboscabeza_fk")
+  proveedoresrecibositems   proveedoresrecibositems[]
+  proveedoresrecibosvalores proveedoresrecibosvalores[] @ignore
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([ProveedorCodigo], map: "ProveedorCodigo")
+  @@index([VendedorCodigo], map: "VendedorCodigo")
+}
+
+model proveedoresrecibositems {
+  DocumentoTipo            String                   @default("") @db.Char(3)
+  DocumentoSucursal        String                   @default("") @db.VarChar(4)
+  DocumentoNumero          String                   @default("") @db.VarChar(8)
+  FacturaTipo              String                   @db.Char(4)
+  FacturaSucursal          String                   @default("") @db.VarChar(4)
+  FacturaNumero            String                   @default("") @db.VarChar(8)
+  ProveedorCodigo          String?                  @db.VarChar(8)
+  ImportePagado            Float?                   @default(0.000)
+  t_proveedores            t_proveedores?           @relation(fields: [ProveedorCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "proveedoresrecibositems_fk")
+  proveedoresreciboscabeza proveedoresreciboscabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "proveedoresrecibositems_ibfk_1")
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, FacturaTipo, FacturaSucursal, FacturaNumero])
+  @@index([FacturaTipo, FacturaSucursal, FacturaNumero, ProveedorCodigo], map: "DocumentoFactura")
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@index([ProveedorCodigo], map: "ProveedorCodigo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model proveedoresrecibosvalores {
+  DocumentoTipo            String                   @default("") @db.Char(3)
+  DocumentoSucursal        String                   @default("") @db.VarChar(4)
+  DocumentoNumero          String                   @default("") @db.VarChar(8)
+  ValorCodigo              String                   @default("") @db.VarChar(4)
+  ValorFecha               DateTime?                @db.Date
+  ValorSucursal            String?                  @db.VarChar(4)
+  ValorNumero              String?                  @db.VarChar(50)
+  Valorbanco               String?                  @db.VarChar(4)
+  ValorImporte             Float?                   @default(0.000)
+  ChequeCodigo             Int?
+  ValorObservaciones       String?                  @db.VarChar(254)
+  proveedoresreciboscabeza proveedoresreciboscabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "proveedoresrecibosvalores_ibfk_1")
+
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@ignore
+}
+
+model reciboscabeza {
+  DocumentoTipo             String           @default("") @db.Char(3)
+  DocumentoSucursal         String           @default("") @db.VarChar(4)
+  DocumentoNumero           String           @default("") @db.VarChar(8)
+  Fecha                     DateTime         @db.Date
+  ClienteCodigo             String           @db.VarChar(10)
+  ImporteTotal              Float?           @default(0.000)
+  FechaAnulacion            DateTime?        @db.Date
+  CodigoUsuario             String?          @db.VarChar(10)
+  CajaNumero                String?          @db.VarChar(10)
+  VendedorCodigo            String?          @db.VarChar(20)
+  Referencia                String?          @db.VarChar(20)
+  t_clientes                t_clientes       @relation(fields: [ClienteCodigo], references: [Codigo], onUpdate: Restrict, map: "reciboscabeza_fk")
+  t_usuarios                t_usuarios?      @relation(fields: [CodigoUsuario], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "reciboscabeza_fk2")
+  recibositems              recibositems[]
+  recibosvalores            recibosvalores[] @ignore
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([ClienteCodigo], map: "ClienteCodigo")
+  @@index([CodigoUsuario], map: "CodigoUsuario")
+  @@index([VendedorCodigo], map: "VendedorCodigo")
+}
+
+model recibositems {
+  DocumentoTipo     String        @default("") @db.Char(3)
+  DocumentoSucursal String        @default("") @db.VarChar(4)
+  DocumentoNumero   String        @default("") @db.VarChar(8)
+  FacturaTipo       String        @default("") @db.Char(3)
+  FacturaSucursal   String        @default("") @db.VarChar(4)
+  FacturaNumero     String        @default("") @db.VarChar(8)
+  ImportePagado     Float         @default(0.000)
+  reciboscabeza     reciboscabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "recibositems_ibfk_1")
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero, FacturaTipo, FacturaSucursal, FacturaNumero])
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model recibosvalores {
+  DocumentoTipo      String        @default("") @db.Char(3)
+  DocumentoSucursal  String        @default("") @db.VarChar(4)
+  DocumentoNumero    String        @default("") @db.VarChar(8)
+  ValorCodigo        String        @default("") @db.VarChar(4)
+  ValorFecha         DateTime?     @db.Date
+  ValorSucursal      String?       @db.VarChar(4)
+  ValorNumero        String?       @db.VarChar(50)
+  Valorbanco         String?       @db.VarChar(4)
+  ValorImporte       Float?
+  ChequeCodigo       Int?
+  ValorObservaciones String?       @db.VarChar(254)
+  reciboscabeza      reciboscabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "recibosvalores_ibfk_1")
+
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@ignore
+}
+
+model remitos_cabeza {
+  DocumentoTipo     String            @default("") @db.VarChar(3)
+  DocumentoSucursal String            @default("") @db.VarChar(8)
+  DocumentoNumero   String            @default("") @db.VarChar(8)
+  CodigoCliente     String?           @db.VarChar(8)
+  CodigoUMovil      String            @db.VarChar(4)
+  FechaEmicion      DateTime          @default(dbgenerated("'0000-00-00'")) @db.Date
+  FechaEntrega      DateTime?         @db.Date
+  FechaEnviado      DateTime?         @db.Date
+  PesoDeCarga       Decimal?          @db.Decimal(18, 0)
+  CantidadArticulos Int?              @default(0)
+  Observacion       String?           @db.VarChar(10)
+  FechaAnulacion    DateTime?         @db.Date
+  FacturadoFecha    DateTime?         @db.Date
+  FacturaTipo       String?           @db.VarChar(3)
+  FacturaSucursal   String?           @db.VarChar(4)
+  FacturaNumero     String?           @db.VarChar(8)
+  ImporteNeto       Float             @default(0.000)
+  ImporteIva1       Float             @default(0.000)
+  ImporteTotal      Float             @default(0.000)
+  mueve_stock       Boolean?          @default(false)
+  t_unidadesmoviles t_unidadesmoviles @relation(fields: [CodigoUMovil], references: [Codigo], onUpdate: Restrict, map: "remitos_cabeza_fk")
+  t_clientes        t_clientes?       @relation(fields: [CodigoCliente], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "remitos_cabeza_fk1")
+  remitos_items     remitos_items[]   @ignore
+
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+  @@index([CodigoCliente], map: "CodigoCliente")
+  @@index([CodigoUMovil], map: "CodigoUMovil")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model remitos_items {
+  DocumentoTipo     String         @default("") @db.VarChar(3)
+  DocumentoSucursal String         @default("") @db.VarChar(4)
+  DocumentoNumero   String         @default("") @db.VarChar(8)
+  CodigoArticulo    String         @default("") @db.VarChar(10)
+  Cantidad          Float          @default(0.000)
+  PrecioUnitario    Float          @default(0.000)
+  t_articulos       t_articulos    @relation(fields: [CodigoArticulo], references: [Codigo], onUpdate: Restrict, map: "remitos_items_fk")
+  remitos_cabeza    remitos_cabeza @relation(fields: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], references: [DocumentoTipo, DocumentoSucursal, DocumentoNumero], onUpdate: Restrict, map: "remitos_items_ibfk_1")
+
+  @@index([CodigoArticulo], map: "CodigoArticulo")
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@ignore
+}
+
+model retenciones_escalas {
+  codigo               String @id @unique(map: "codigo") @db.VarChar(2)
+  monto_desde          Float? @default(0.00)
+  monto_hasta          Float? @default(0.00)
+  importe_retencion    Float? @default(0.00)
+  porcentaje_retencion Float? @default(0.00)
+  sobre_excedente      Float? @default(0.00)
+}
+
+model retenciones_generales {
+  codigo                  String                    @id @unique(map: "codigo") @db.VarChar(2)
+  descripcion             String?                   @db.Text
+  importe_excento         Float?                    @default(0.00)
+  porcentaje_alicuota     Float?                    @default(0.00)
+  retencion_minima        Float?                    @default(0.00)
+  usar_escala             Boolean?                  @default(false)
+  proveedores_retenciones proveedores_retenciones[]
+  t_proveedores           t_proveedores[]
+
+  @@index([usar_escala], map: "retenciones_escala_codigo")
+}
+
+model rutas {
+  Codigo          String            @id @db.VarChar(8)
+  Descripcion     String?           @db.VarChar(20)
+  codVendedor     String?           @db.VarChar(8)
+  t_vendedores    t_vendedores?     @relation(fields: [codVendedor], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "rutas_fk")
+  rutas_articulos rutas_articulos[]
+  rutas_clientes  rutas_clientes[]  @ignore
+
+  @@index([codVendedor], map: "codVendedor")
+}
+
+model rutas_articulos {
+  codRuta     String      @db.VarChar(8)
+  codArticulo String      @default("") @db.VarChar(13)
+  rutas       rutas       @relation(fields: [codRuta], references: [Codigo], onUpdate: Restrict, map: "rutas_articulos_fk")
+  t_articulos t_articulos @relation(fields: [codArticulo], references: [Codigo], onUpdate: Restrict, map: "rutas_articulos_fk1")
+
+  @@id([codRuta, codArticulo])
+  @@index([codArticulo], map: "codArticulo")
+  @@index([codRuta], map: "codRuta")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model rutas_clientes {
+  codRuta      String     @db.VarChar(8)
+  codCliente   String     @db.VarChar(8)
+  orden_visita Int        @default(0)
+  rutas        rutas      @relation(fields: [codRuta], references: [Codigo], onUpdate: Restrict, map: "rutas_clientes_fk")
+  t_clientes   t_clientes @relation(fields: [codCliente], references: [Codigo], onUpdate: Restrict, map: "rutas_clientes_fk1")
+
+  @@index([codCliente], map: "codCliente")
+  @@index([codRuta, codCliente], map: "codRuta")
+  @@index([codRuta], map: "codRuta_2")
+  @@ignore
+}
+
+model rutas_entrega {
+  Codigo                 Int                      @id
+  Descripcion            String?                  @db.VarChar(50)
+  TransporteCodigo       String?                  @db.VarChar(3)
+  t_transportes          t_transportes?           @relation(fields: [TransporteCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "rutas_entrega_fk")
+  rutas_entrega_clientes rutas_entrega_clientes[]
+
+  @@index([TransporteCodigo], map: "TransporteCodigo")
+}
+
+model rutas_entrega_clientes {
+  codRutaEntrega Int
+  codCliente     String        @db.VarChar(8)
+  rutas_entrega  rutas_entrega @relation(fields: [codRutaEntrega], references: [Codigo], onUpdate: Restrict, map: "rutas_entrega_clientes_fk")
+  t_clientes     t_clientes    @relation(fields: [codCliente], references: [Codigo], onUpdate: Restrict, map: "rutas_entrega_clientes_fk1")
+
+  @@id([codRutaEntrega, codCliente])
+  @@index([codCliente], map: "codCliente")
+  @@index([codRutaEntrega], map: "codRutaEntrega")
+}
+
+model sys_errores {
+  Id             Int     @id @default(autoincrement())
+  Descripcion    String? @db.Text
+  UltimaConsulta String? @db.Text
+}
+
+model t_articulos {
+  Codigo                                                                                String                    @id @db.VarChar(13)
+  Descripcion                                                                           String                    @db.VarChar(200)
+  Existencia                                                                            Float?
+  ExistenciaMinima                                                                      Float?                    @default(0)
+  ExistenciaMaxima                                                                      Float?                    @default(0)
+  PrecioCostoMasImp                                                                     Float?                    @default(0)
+  PorcentajeIVA1                                                                        Float?                    @default(0)
+  PorcentajeIVA2                                                                        Float?                    @default(0)
+  PrecioCosto                                                                           Float?
+  UnidadVenta                                                                           String?                   @db.Char(3)
+  Lista1                                                                                Float?
+  Lista2                                                                                Float?
+  Lista3                                                                                Float?
+  Lista4                                                                                Float?
+  Lista5                                                                                Float?
+  ProveedorCodigo                                                                       String?                   @db.VarChar(7)
+  RubroCodigo                                                                           String?                   @db.VarChar(4)
+  Peso                                                                                  Float?                    @default(0)
+  SiempreSeDescarga                                                                     Int?                      @db.UnsignedTinyInt
+  Iva2SobreNeto                                                                         Boolean?                  @default(false)
+  PorcentajeVendedor                                                                    Float?
+  DescuentoXCantidad                                                                    String?                   @db.VarChar(245)
+  SeVende                                                                               Boolean?                  @default(true)
+  Activo                                                                                Boolean?                  @default(true)
+  EnviadoACentral                                                                       Int?
+  RequiereFrio                                                                          Boolean?                  @default(false)
+  FamiliaCodigo                                                                         String?                   @db.VarChar(2)
+  SubFamiliaCodigo                                                                      String?                   @db.VarChar(4)
+  ProveedorArticuloCodigo                                                               String?                   @default(" ") @db.VarChar(20)
+  EsCompuesto                                                                           Boolean                   @default(false)
+  UV_OrdenDeEntrega                                                                     String?                   @db.Char(3)
+  UbicacionDeposito                                                                     String?                   @db.VarChar(100)
+  CodigoBarras                                                                          String?                   @db.VarChar(20)
+  cargapordefecto                                                                       cargapordefecto[]
+  comisiones_vendedores                                                                 comisiones_vendedores[]   @ignore
+  comprasitems                                                                          comprasitems[]
+  notacreditoitems                                                                      notacreditoitems[]        @ignore
+  pedidositems                                                                          pedidositems[]
+  preventa_items                                                                        preventa_items[]
+  remitos_items                                                                         remitos_items[]           @ignore
+  rutas_articulos                                                                       rutas_articulos[]
+  t_proveedores                                                                         t_proveedores?            @relation(fields: [ProveedorCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "t_articulos_fk")
+  t_rubros                                                                              t_rubros?                 @relation(fields: [RubroCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "t_articulos_fk1")
+  t_articulos_composicion_t_articulos_composicion_ArticuloCodigoTot_articulos           t_articulos_composicion[] @relation("t_articulos_composicion_ArticuloCodigoTot_articulos")
+  t_articulos_composicion_t_articulos_composicion_ArticuloComponenteCodigoTot_articulos t_articulos_composicion[] @relation("t_articulos_composicion_ArticuloComponenteCodigoTot_articulos")
+  t_articulosumoviles                                                                   t_articulosumoviles[]     @ignore
+
+  @@index([FamiliaCodigo], map: "FamiliaCodigo")
+  @@index([ProveedorCodigo], map: "ProveedorCodigo")
+  @@index([RubroCodigo], map: "RubroCodigo")
+  @@index([SubFamiliaCodigo], map: "SubFamiliaCodigo")
+  @@index([UnidadVenta], map: "UnidadVenta")
+}
+
+model t_articulos_composicion {
+  ArticuloCodigo                                                            String      @db.VarChar(13)
+  ArticuloComponenteCodigo                                                  String      @db.VarChar(13)
+  Cantidad                                                                  Float       @default(0.000) @db.Float
+  t_articulos_t_articulos_composicion_ArticuloCodigoTot_articulos           t_articulos @relation("t_articulos_composicion_ArticuloCodigoTot_articulos", fields: [ArticuloCodigo], references: [Codigo], onUpdate: Restrict, map: "t_articulos_composicion_fk")
+  t_articulos_t_articulos_composicion_ArticuloComponenteCodigoTot_articulos t_articulos @relation("t_articulos_composicion_ArticuloComponenteCodigoTot_articulos", fields: [ArticuloComponenteCodigo], references: [Codigo], onUpdate: Restrict, map: "t_articulos_composicion_fk1")
+
+  @@id([ArticuloCodigo, ArticuloComponenteCodigo])
+  @@index([ArticuloCodigo], map: "ArticuloCodigo")
+  @@index([ArticuloComponenteCodigo], map: "ArticuloComponenteCodigo")
+}
+
+model t_articulos_familias {
+  Codigo                  String                    @id @db.VarChar(2)
+  Descripcion             String?                   @db.VarChar(50)
+  t_articulos_subfamilias t_articulos_subfamilias[] @ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model t_articulos_subfamilias {
+  Codigo               String?               @db.VarChar(4)
+  Descripcion          String?               @db.VarChar(50)
+  FamiliaCodigo        String?               @db.VarChar(2)
+  t_articulos_familias t_articulos_familias? @relation(fields: [FamiliaCodigo], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "t_articulos_subfamilias_fk")
+
+  @@index([Codigo], map: "Codigo")
+  @@index([FamiliaCodigo], map: "FamiliaCodigo")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model t_articulos_unidades_alternativas {
+  ArticuloCodigo    String? @db.VarChar(13)
+  UnidadVentaCodigo String? @db.VarChar(3)
+  Cantidad          Float?
+
+  @@index([ArticuloCodigo, UnidadVentaCodigo], map: "ArticuloCodigo")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model t_articulosadescargartmp {
+  CodigoArticulo String   @default("") @db.VarChar(13)
+  CodigoUMovil   String   @default("") @db.VarChar(4)
+  Cantidad       Float    @default(0)
+  Fecha          DateTime @default(dbgenerated("'0000-00-00 00:00:00'")) @db.DateTime(0)
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model t_articulosumoviles {
+  CodigoArticulo    String            @default("") @db.VarChar(13)
+  CodigoUMovil      String            @default("") @db.VarChar(4)
+  Lista1            Float?
+  Lista2            Float?
+  Lista3            Float?
+  Lista4            Float?
+  Lista5            Float?
+  Existencia        Float?
+  CodigoRubro       String?           @db.VarChar(4)
+  Actualizado       Int?              @db.UnsignedTinyInt
+  t_articulos       t_articulos       @relation(fields: [CodigoArticulo], references: [Codigo], onUpdate: Restrict, map: "t_articulosumoviles_ibfk_1")
+  t_unidadesmoviles t_unidadesmoviles @relation(fields: [CodigoUMovil], references: [Codigo], onUpdate: Restrict, map: "t_articulosumoviles_ibfk_2")
+
+  @@index([CodigoArticulo], map: "CodigoArticulo")
+  @@index([CodigoArticulo, CodigoUMovil], map: "CodigoArticulo_2")
+  @@index([CodigoUMovil], map: "CodigoUMovil")
+  @@ignore
+}
+
+model t_bancos {
+  Codigo      String    @id @default("") @db.VarChar(4)
+  Descripcion String?   @db.VarChar(50)
+  cheques     cheques[]
+}
+
+model t_caja_conceptos {
+  Codigo      String  @id @db.VarChar(4)
+  Descripcion String? @db.VarChar(250)
+}
+
+model t_canales {
+  Codigo           String  @id @default("") @db.VarChar(4)
+  Descripcion      String? @db.VarChar(50)
+  CanalGrupoCodigo Int?
+}
+
+model t_categoriasiva {
+  Codigo      String       @id @default("") @db.Char(1)
+  Descripcion String?      @db.VarChar(50)
+  Porcentaje1 Int?
+  Porcentaje2 Int?
+  Documento   String?      @db.Char(1)
+  t_clientes  t_clientes[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model t_clientes {
+  Codigo                        String                        @id @default("") @db.VarChar(8)
+  Descripcion                   String?                       @db.VarChar(50)
+  NombreFantasia                String?                       @db.VarChar(80)
+  Cuit                          String?                       @db.VarChar(11)
+  Calle                         String?                       @db.VarChar(50)
+  Numero                        String?                       @db.VarChar(15)
+  Piso                          String?                       @db.VarChar(10)
+  Departamento                  String?                       @db.VarChar(10)
+  ProvinciaCodigo               String?                       @db.VarChar(3)
+  CodigoPostal                  String?                       @db.VarChar(10)
+  Localidad                     String?                       @db.VarChar(50)
+  ContactoNombre                String?                       @db.VarChar(100)
+  Mail                          String?                       @db.VarChar(50)
+  Telefono                      String?                       @db.VarChar(50)
+  TelefonoMovil                 String?                       @db.VarChar(50)
+  ContactoComercial             String?                       @db.Text
+  CategoriaIva                  String?                       @db.Char(1)
+  ListaPrecio                   String?                       @db.Char(1)
+  ImporteDeuda                  Float?                        @default(0.00)
+  CodigoVendedor                String?                       @db.VarChar(20)
+  Actualizado                   Int?                          @db.UnsignedTinyInt
+  SaldoNTCNoAplicado            Float?                        @default(0.00)
+  Activo                        Boolean?                      @default(false)
+  LimiteCredito                 Float?                        @default(0.00)
+  CanalCodigo                   String?                       @db.VarChar(2)
+  FechaDeAlta                   DateTime?                     @db.Date
+  FechaDeBaja                   DateTime?                     @db.Date
+  TransporteCodigo              String?                       @db.VarChar(3)
+  DirEntregaCalle               String?                       @db.VarChar(50)
+  DirEntregaNumero              String?                       @db.VarChar(10)
+  DirEntregaPiso                String?                       @db.VarChar(3)
+  DirEntregaDpto                String?                       @db.VarChar(5)
+  DirEntregaProvinciaCodigo     String?                       @db.VarChar(3)
+  DirEntregaLocalidadCodigo     String?                       @db.VarChar(10)
+  CondicionVentaCodigo          String?                       @db.VarChar(3)
+  PorcentajeBonificacionGeneral Float?                        @default(0.00)
+  GrupoPercepcionIIBBCodigo     String?                       @db.VarChar(10)
+  PorcentajePercepcionIIBB      Float?                        @default(0.00)
+  GrupoCodigo                   String?                       @db.VarChar(20)
+  cant_facturas_impagas_max     Int?                          @default(0)
+  ZonaCodigo                    String?                       @db.VarChar(3)
+  InvCuentaVentas               Int?
+  CliCuentaCredito              Int?
+  TipoDocumento                 String?                       @db.VarChar(2)
+  CodigoLocalidad               String?                       @db.VarChar(8)
+  facturacabeza                 facturacabeza[]
+  notacreditocabeza             notacreditocabeza[]
+  notadebitocabeza              notadebitocabeza[]
+  pedidoscabeza                 pedidoscabeza[]
+  presupuestocabeza             presupuestocabeza[]
+  preventa_cabeza               preventa_cabeza[]
+  reciboscabeza                 reciboscabeza[]
+  remitos_cabeza                remitos_cabeza[]
+  rutas_clientes                rutas_clientes[]              @ignore
+  rutas_entrega_clientes        rutas_entrega_clientes[]
+  t_categoriasiva               t_categoriasiva?              @relation(fields: [CategoriaIva], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "t_clientes_ibfk_2")
+  tmp_ventas_clientes_periodos  tmp_ventas_clientes_periodos?
+
+  @@index([CanalCodigo], map: "CanalCodigo")
+  @@index([CategoriaIva], map: "CategoriaIva")
+  @@index([CodigoVendedor], map: "CodigoVendedor")
+  @@index([CondicionVentaCodigo], map: "CondicionVentaCodigo")
+  @@index([GrupoCodigo], map: "GrupoCodigo")
+  @@index([GrupoPercepcionIIBBCodigo], map: "GrupoPercepcionIIBBCodigo")
+  @@index([Localidad], map: "Localidad")
+  @@index([TransporteCodigo], map: "TransporteCodigo")
+}
+
+model t_clientes_grupos {
+  Codigo      String  @id @unique(map: "Codigo") @db.VarChar(20)
+  Descripcion String? @db.VarChar(200)
+}
+
+model t_codigospostales {
+  Codigo       String        @id @default("") @db.VarChar(10)
+  Descripcion  String?       @db.VarChar(50)
+  Provincia    String?       @db.Char(3)
+  t_provincias t_provincias? @relation(fields: [Provincia], references: [Codigo], onDelete: Restrict, onUpdate: Restrict, map: "t_codigospostales_ibfk_1")
+
+  @@index([Provincia], map: "Provincia")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model t_comprobantes {
+  CodigoAfip            String?  @db.VarChar(3)
+  Codigo                String   @id @default("") @db.VarChar(4)
+  Descripcion           String   @db.VarChar(50)
+  Reporte               String?  @db.VarChar(100)
+  Modulo                String?  @db.VarChar(3)
+  Tipo                  String?  @db.VarChar(3)
+  Activo                Int?     @default(1) @db.TinyInt
+  UsaFacturaElectronica Boolean? @default(dbgenerated("b'0'")) @db.Bit(1)
+  UsaControladorFiscal  Boolean? @db.Bit(1)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model t_condiciones_venta {
+  Codigo       String? @db.VarChar(2)
+  Descripcion  String? @db.VarChar(50)
+  CantidadDias Int?    @default(0)
+
+  @@index([Codigo], map: "Codigo")
+  @@ignore
+}
+
+model t_configuracion {
+  Codigo        String  @id @db.VarChar(500)
+  Descripcion   String? @db.VarChar(200)
+  ValorConfig   String  @db.Text
+  pasar_a_ipaqs Boolean @default(false)
+}
+
+model t_configuracion_vieja {
+  Codigo        String  @id @db.VarChar(500)
+  Descripcion   String? @db.VarChar(200)
+  valorConfig   String? @db.VarChar(200)
+  pasar_a_ipaqs Boolean @default(false)
+
+  @@map("t_configuracion vieja")
+}
+
+model t_coordenadas_prn {
+  codigo      String   @id @db.VarChar(20)
+  descripcion String?  @db.VarChar(50)
+  y           Int?
+  x           Int?
+  ancho       Int?
+  Activo      Boolean?
+}
+
+model t_dias {
+  Codigo          String            @id @default("") @db.Char(1)
+  Descripcion     String            @db.VarChar(20)
+  cargapordefecto cargapordefecto[]
+}
+
+model t_documentos {
+  Codigo            String  @id @default("") @db.Char(1)
+  Descripcion       String? @db.VarChar(50)
+  CantidadRenglones Int?
+  NombreReporte     String? @db.VarChar(100)
+}
+
+model t_filtros {
+  Codigo      Int     @id @default(autoincrement())
+  Descripcion String? @db.VarChar(50)
+  formulario  String? @db.VarChar(100)
+  valor       String? @db.Text
+}
+
+model t_gastosdescripcion {
+  Codigo          String          @id @unique @db.Char(3)
+  Descripcion     String          @db.VarChar(50)
+  CodigoTipo      String          @default("") @db.Char(2)
+  gastositems     gastositems[]
+  t_tiposdegastos t_tiposdegastos @relation(fields: [CodigoTipo], references: [Codigo], onUpdate: Restrict, map: "t_gastosdescripcion_ibfk_1")
+
+  @@index([CodigoTipo], map: "CodigoTipo")
+}
+
+model t_numeroscontrol {
+  Codigo        String  @default("") @db.Char(3)
+  Descripcion   String? @db.VarChar(50)
+  NumeroProximo Int?
+  Copias        Int?
+  Sucursal      String  @db.VarChar(4)
+
+  @@id([Codigo, Sucursal])
+}
+
+model t_objetivos {
+  Mes                 Int
+  Anio                Int
+  Rubro               String    @db.VarChar(4)
+  VolumenObjetivo     Float?    @default(0.00)
+  FacturacionObjetivo Float?    @default(0.00)
+  VolumenReal         Float?    @default(0.00)
+  FacturacionReal     Float?    @default(0.00)
+  FechaProceso        DateTime? @db.DateTime(0)
+
+  @@id([Mes, Anio, Rubro])
+}
+
+model t_objetivos_vendedores {
+  Mes                 Int
+  Anio                Int
+  Rubro               String    @db.VarChar(4)
+  VendedorCodigo      String    @db.VarChar(20)
+  VolumenObjetivo     Float?    @default(0.00)
+  FacturacionObjetivo Float?    @default(0.00)
+  VolumenReal         Float?    @default(0.00)
+  FacturacionReal     Float?    @default(0.00)
+  FechaProceso        DateTime? @db.Date
+
+  @@id([Mes, Anio, Rubro, VendedorCodigo])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model t_opcionesasignadas {
+  Codigo String? @db.VarChar(10)
+  Opcion String? @db.VarChar(50)
+
+  @@ignore
+}
+
+model t_percepciones_iibb_grupos {
+  Codigo       Int     @id @default(autoincrement())
+  Descripcion  String? @db.VarChar(50)
+  Porcentaje   Float?
+  ImporteDesde Float?  @default(0.000)
+}
+
+model t_perfiles {
+  PerfilId    Int     @id @default(autoincrement())
+  Descripcion String? @db.VarChar(50)
+}
+
+model t_proveedores {
+  Codigo                       String                        @id @default("") @db.VarChar(8)
+  Descripcion                  String?                       @db.VarChar(50)
+  Cuit                         String?                       @db.VarChar(11)
+  Calle                        String?                       @db.VarChar(50)
+  Numero                       String?                       @db.VarChar(15)
+  Piso                         String?                       @db.VarChar(10)
+  Departamento                 String?                       @db.VarChar(10)
+  CodigoPostal                 String?                       @db.VarChar(10)
+  Telefono                     String?                       @db.VarChar(50)
+  Mail                         String?                       @db.VarChar(50)
+  ContactoComercial            String?                       @db.VarChar(50)
+  ImporteDeuda                 Float?                        @default(0)
+  Enviado                      Int?                          @default(0)
+  SaldoNTCNoAplicado           Float?                        @default(0)
+  retenciones_generales_codigo String?                       @db.VarChar(2)
+  CondicionVentaCodigo         String?                       @db.VarChar(2)
+  ProveedorTipoCodigo          String?                       @db.VarChar(3)
+  InvCuentaCompras             Int?
+  comprascabeza                comprascabeza[]               @ignore
+  proveedores_retenciones      proveedores_retenciones[]
+  proveedoresnotadebitocabeza  proveedoresnotadebitocabeza[]
+  proveedoresreciboscabeza     proveedoresreciboscabeza[]
+  proveedoresrecibositems      proveedoresrecibositems[]
+  t_articulos                  t_articulos[]
+  retenciones_generales        retenciones_generales?        @relation(fields: [retenciones_generales_codigo], references: [codigo], onDelete: Restrict, onUpdate: Restrict, map: "t_proveedores_fk")
+
+  @@index([CodigoPostal], map: "CodigoPostal")
+  @@index([retenciones_generales_codigo], map: "retenciones_generales_codigo")
+}
+
+model t_proveedores_tipos {
+  Codigo      String  @id @db.VarChar(3)
+  Descripcion String? @db.VarChar(50)
+}
+
+model t_provincias {
+  Codigo            String              @id @default("") @db.Char(3)
+  Descripcion       String?             @db.VarChar(50)
+  t_codigospostales t_codigospostales[]
+}
+
+model t_rubros {
+  Codigo           String        @id @default("") @db.VarChar(4)
+  Descripcion      String?       @db.VarChar(50)
+  RubroGrupoCodigo String?       @db.VarChar(4)
+  t_articulos      t_articulos[]
+}
+
+model t_rubros_grupos {
+  codigo      String  @id @unique(map: "codigo") @db.VarChar(4)
+  descripcion String? @db.VarChar(100)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model t_tiposdedocumento {
+  Codigo      String? @db.VarChar(3)
+  Descripcion String? @db.VarChar(50)
+
+  @@ignore
+}
+
+model t_tiposdegastos {
+  Codigo              String                @id @default("") @db.Char(2)
+  Descripcion         String                @db.VarChar(50)
+  gastositems         gastositems[]
+  t_gastosdescripcion t_gastosdescripcion[]
+}
+
+model t_transportes {
+  Codigo               String                 @id @db.VarChar(3)
+  Descripcion          String?                @db.VarChar(20)
+  kg_maximo            Float                  @default(0.00)
+  mt3_maximo           Float                  @default(0.00)
+  estado               Boolean                @default(false)
+  orden_entrega_cabeza orden_entrega_cabeza[]
+  rutas_entrega        rutas_entrega[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model t_ultimaoperacion {
+  UltimaOperacion String? @db.VarChar(10)
+
+  @@ignore
+}
+
+model t_unidadesmoviles {
+  Codigo              String                @id @default("") @db.VarChar(4)
+  Descripcion         String?               @db.VarChar(50)
+  PathDB              String?               @db.VarChar(1000)
+  EsUnidadMovil       Int?                  @default(0) @db.TinyInt
+  UnidadCargada       Int?                  @default(0)
+  cargapordefecto     cargapordefecto[]
+  ordencargacabeza    ordencargacabeza[]
+  pedidoscabeza       pedidoscabeza[]
+  remitos_cabeza      remitos_cabeza[]
+  t_articulosumoviles t_articulosumoviles[] @ignore
+}
+
+model t_unidadesventa {
+  Codigo      String  @id @default("") @db.Char(3)
+  Descripcion String? @db.VarChar(50)
+}
+
+model t_usuarios {
+  Codigo               String                 @id @default("") @db.VarChar(10)
+  Descripcion          String?                @db.VarChar(50)
+  Clave                String?                @db.VarChar(10)
+  facturacabeza        facturacabeza[]
+  notacreditocabeza    notacreditocabeza[]
+  orden_entrega_cabeza orden_entrega_cabeza[]
+  reciboscabeza        reciboscabeza[]
+}
+
+model t_valores {
+  Codigo                String                  @id @default("") @db.VarChar(4)
+  Descripcion           String?                 @db.VarChar(50)
+  PideNumero            Boolean?
+  PideFecha             Boolean?
+  PideBanco             Boolean?
+  Sistema               Boolean?
+  PideObservaciones     Boolean?                @default(false)
+  EnCobros              Boolean                 @default(false)
+  EnPagos               Boolean                 @default(false)
+}
+
+model t_vendedores {
+  Codigo                String                  @id @default("") @db.VarChar(20)
+  Descripcion           String?                 @db.VarChar(50)
+  Clave                 String?                 @db.VarChar(20)
+  Activo                Int?                    @default(1) @db.TinyInt
+  comisiones_vendedores comisiones_vendedores[] @ignore
+  comisionescabeza      comisionescabeza[]
+  facturacabeza         facturacabeza[]
+  notadebitocabeza      notadebitocabeza[]
+  rutas                 rutas[]
+}
+
+model t_zonas {
+  Codigo      String  @id @db.VarChar(3)
+  Descripcion String? @db.VarChar(50)
+}
+
+model tmp_cc_clientes_valores {
+  id             Int      @id @default(autoincrement())
+  fecha          DateTime @db.Date
+  descripcion    String?  @db.VarChar(100)
+  cliente_codigo String   @db.VarChar(20)
+  importe        Float?
+  usuario_codigo String   @db.VarChar(20)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model tmp_compras_iva {
+  DocumentoTipo     String   @db.VarChar(4)
+  DocumentoSucursal String   @db.VarChar(4)
+  DocumentoNumero   String   @db.VarChar(8)
+  ProveedorCodigo   String?  @db.VarChar(8)
+  Fecha             DateTime @db.Date
+  ImporteNeto       Float?   @default(0.00)
+  ImporteIva1       Float?   @default(0.00)
+  ImporteIva2       Float?   @default(0.00)
+  IngresosBrutos    Float?   @default(0.00)
+  OtrosImpuestos1   Float?   @default(0.00)
+  OtrosImpuestos2   Float?   @default(0.00)
+  OtrosImpuestos3   Float?   @default(0.00)
+  ImporteTotal      Float?   @default(0.00)
+  UsuarioCodigo     String   @db.VarChar(20)
+
+  @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
+  @@index([Fecha], map: "Fecha")
+  @@index([ProveedorCodigo], map: "ProveedorCodigo")
+  @@index([UsuarioCodigo], map: "UsuarioCodigo")
+  @@ignore
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tmp_costosymargenes {
+  codigo_usuario           String   @db.VarChar(10)
+  codigo_articulo          String   @default("") @db.VarChar(13)
+  desc_articulo            String   @db.VarChar(200)
+  stock_inicial            Float
+  costo_unitario_inicial   Float
+  total_unidades_vendidas  Float
+  total_importe_ventas     Float
+  sum_total_importe_ventas Float    @default(0)
+  stock_incrementado       Float
+  costo_uni_periodo        Float    @default(0)
+  fecha_desde              DateTime @db.Date
+  fecha_hasta              DateTime @db.Date
+
+  @@id([codigo_usuario, codigo_articulo])
+}
+
+model tmp_documentos_deuda {
+  codigo_usuario     String   @db.VarChar(10)
+  documento_tipo     String   @db.VarChar(3)
+  documento_sucursal String   @db.VarChar(4)
+  documento_numero   String   @db.VarChar(8)
+  codigo_cliente     String   @db.VarChar(8)
+  fecha              DateTime @db.Date
+  importe_total      Float
+  importe_pagado     Float
+  importe_deuda      Float
+
+  @@id([codigo_usuario, documento_tipo, documento_sucursal, documento_numero])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model tmp_informecierrecaja {
+  DocumentoTipo     String  @db.VarChar(3)
+  DocumentoSucursal String  @db.VarChar(4)
+  DocumentoNumero   String  @db.VarChar(8)
+  Valor             String? @db.VarChar(20)
+  Importe           Float?
+
+  @@ignore
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tmp_movimientos_cc {
+  codigo_usuario    String   @db.VarChar(10)
+  DocumentoTipo     String   @db.VarChar(4)
+  DocumentoSucursal String   @db.VarChar(4)
+  DocumentoNumero   String   @db.VarChar(150)
+  CodCliente        String   @db.VarChar(10)
+  Fecha             DateTime @db.Date
+  Debe              Float
+  Haber             Float
+
+  @@id([codigo_usuario, DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tmp_movimientos_cc_rango {
+  codigo_usuario    String    @db.VarChar(10)
+  DocumentoTipo     String?   @db.VarChar(4)
+  DocumentoSucursal String?   @db.VarChar(4)
+  DocumentoNumero   String?   @db.VarChar(8)
+  CodCliente        String?   @db.VarChar(10)
+  Fecha             DateTime? @db.Date
+  Debe              Float?
+  Haber             Float?
+  Descripcion       String?   @db.VarChar(60)
+  SaldoAnterior     Float?    @db.Float
+
+  @@ignore
+}
+
+model tmp_prv_documentos_deuda {
+  codigo_usuario     String   @db.VarChar(10)
+  documento_tipo     String   @db.VarChar(3)
+  documento_sucursal String   @db.VarChar(4)
+  documento_numero   String   @db.VarChar(8)
+  codigo_proveedor   String   @db.VarChar(10)
+  fecha              DateTime @db.Date
+  importe_total      Float
+  importe_pagado     Float
+  importe_deuda      Float
+
+  @@id([codigo_usuario, documento_tipo, documento_sucursal, documento_numero, codigo_proveedor])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tmp_prv_movimientos_cc {
+  codigo_usuario    String   @db.VarChar(10)
+  DocumentoTipo     String   @db.VarChar(4)
+  DocumentoSucursal String   @db.VarChar(4)
+  DocumentoNumero   String   @db.VarChar(8)
+  CodProveedor      String   @db.VarChar(10)
+  Fecha             DateTime @db.Date
+  Debe              Float
+  Haber             Float
+
+  @@id([codigo_usuario, DocumentoTipo, DocumentoSucursal, DocumentoNumero, CodProveedor])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tmp_prv_movimientos_cc_rango {
+  codigo_usuario    String    @db.VarChar(10)
+  DocumentoTipo     String?   @db.VarChar(4)
+  DocumentoSucursal String?   @db.VarChar(4)
+  DocumentoNumero   String?   @db.VarChar(8)
+  CodProveedor      String?   @db.VarChar(10)
+  Fecha             DateTime? @db.Date
+  Debe              Float?
+  Haber             Float?
+  Descripcion       String?   @db.VarChar(60)
+  SaldoAnterior     Float?    @db.Float
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model tmp_resumen_ventas_cobros {
+  UsuarioCodigo  String? @db.VarChar(10)
+  VendedorCodigo String? @db.VarChar(20)
+  TotalVendido   Float?  @default(0.00)
+  TotalCobrado   Float?  @default(0.00)
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model tmp_seguimientodecostos {
+  ArticuloDescripcion  String?   @db.VarChar(60)
+  Fecha                String?   @db.VarChar(30)
+  PrecioCosto          Float?    @db.Float
+  ProveedorDescripcion String?   @db.VarChar(100)
+  UsuarioCodigo        String?   @db.VarChar(100)
+  Fecha2               DateTime? @db.Date
+  PrecioVenta          Float?    @db.Float
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tmp_ventas_articulos {
+  codigo_usuario String  @db.VarChar(10)
+  CodigoArticulo String? @db.VarChar(13)
+  Descripcion    String  @db.VarChar(100)
+  VendedorCodigo String? @db.VarChar(20)
+  Peso           Float   @db.Float
+  RubroCodigo    String  @db.VarChar(4)
+  CantTotal      Float
+  ImpTotal       Float
+  unidadventa    String? @db.VarChar(20)
+  RubroDesc      String? @db.VarChar(50)
+  PrecioProm     Float?
+
+  @@index([codigo_usuario, CodigoArticulo], map: "codigo_usuario")
+  @@index([codigo_usuario], map: "usuario")
+  @@ignore
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tmp_ventas_clientes {
+  codigo_usuario String @db.VarChar(10)
+  CodCliente     String @db.VarChar(10)
+  DescCliente    String @db.VarChar(100)
+  CantTotal      Float
+  ImpTotal       Float
+  PesoTotal      Float
+
+  @@id([codigo_usuario, CodCliente])
+}
+
+model tmp_ventas_clientes_detalle {
+  codigo_usuario  String @db.VarChar(10)
+  CodigoArticulo  String @default("") @db.VarChar(13)
+  DescArticulo    String @db.VarChar(100)
+  CantTotal       Float
+  PesoTotal       Float
+  ImpTotal        Float
+  ClienteCodigo   String @db.VarChar(10)
+  CodigoProveedor String @db.VarChar(8)
+  CodigoRubro     String @db.VarChar(4)
+
+  @@id([codigo_usuario, CodigoArticulo, ClienteCodigo])
+}
+
+model tmp_ventas_clientes_periodos {
+  ClienteCodigo String     @id @db.VarChar(15)
+  ClienteDesc   String     @db.VarChar(200)
+  Anio          String     @db.VarChar(4)
+  Mes           Int
+  MesLiteral    String     @db.VarChar(20)
+  KgTotal       Float?     @default(0.000)
+  ImporteTotal  Float?     @default(0.000)
+  t_clientes    t_clientes @relation(fields: [ClienteCodigo], references: [Codigo], onUpdate: Restrict, map: "tmp_ventas_clientes_periodos_fk")
+}
+
+model tmp_ventas_iva {
+  CodigoUsuario     String    @default("") @db.VarChar(10)
+  DocumentoTipo     String    @default("") @db.Char(3)
+  DocumentoSucursal String    @default("") @db.VarChar(4)
+  DocumentoNumero   String    @default("") @db.VarChar(8)
+  ClienteCodigo     String?   @db.VarChar(8)
+  cuit              String?   @db.VarChar(11)
+  ClienteDescrip    String?   @db.VarChar(50)
+  Fecha             DateTime? @db.Date
+  ImporteNeto       Float?
+  ImporteIva1       Float?
+  ImporteIva2       Float?
+  ImporteIIBB       Float?    @default(0.00)
+  ImporteTotal      Float?
+
+  @@id([CodigoUsuario, DocumentoTipo, DocumentoSucursal, DocumentoNumero])
+}
+
+model tmp_ventas_vendedor {
+  codigo_usuario String @db.VarChar(10)
+  CantTotal      Float
+  PesoTotal      Float
+  ImpTotal       Float
+  Fecha          String @db.VarChar(20)
+  Orden          Int?
+
+  @@id([codigo_usuario, Fecha])
+}
