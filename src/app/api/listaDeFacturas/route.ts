@@ -31,7 +31,7 @@ export async function GET() {
       orderBy: {
         Fecha: "desc",
       },
-      take: 100,
+      take: 10000,
     });
     return NextResponse.json(facturas);
   } catch (error) {
