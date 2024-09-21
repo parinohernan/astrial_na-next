@@ -1,11 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-
-export interface Vendedor {
-  Descripcion: string;
-  Codigo: string;
-  Nombre: string;
-}
+import { Vendedor } from "@/types";
 
 export const useVendedores = () => {
   return useQuery<Vendedor[]>({

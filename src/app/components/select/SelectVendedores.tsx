@@ -1,11 +1,6 @@
 import React from "react";
 import { useVendedores } from "@/hooks/useVendedores";
-
-export interface Vendedor {
-  Codigo: string;
-  Nombre: string;
-  Descripcion: string;
-}
+import { Vendedor } from "@/types";
 
 interface SelectVendedoresProps {
   value: Vendedor | null;

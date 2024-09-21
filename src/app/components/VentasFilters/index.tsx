@@ -1,6 +1,8 @@
 import React from "react";
 import DatePicker from "react-datepicker";
-import SelectVendedores, { Vendedor } from "../select/SelectVendedores";
+import "react-datepicker/dist/react-datepicker.css";
+import SelectVendedores from "../select/SelectVendedores";
+import { Vendedor } from "@/types";
 
 interface VentasFiltersProps {
   fechaInicio: Date;

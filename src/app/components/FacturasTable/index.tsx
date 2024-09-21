@@ -1,16 +1,5 @@
 import React from "react";
-
-interface Factura {
-  DocumentoTipo: string;
-  DocumentoSucursal: string;
-  DocumentoNumero: string;
-  Fecha: string;
-  ClienteCodigo: string | null;
-  VendedorCodigo: string | null;
-  ImporteTotal: number | null;
-  t_clientes?: { Descripcion: string } | null;
-  t_vendedores?: { Descripcion: string } | null;
-}
+import { Factura } from "@/types";
 
 interface FacturasTableProps {
   facturas: Factura[];
