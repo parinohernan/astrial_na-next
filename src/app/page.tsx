@@ -4,11 +4,6 @@ import { ItemDetails } from "./components/ItemDetails/index";
 import { DataList } from "./components/DataList";
 
 export default function Home() {
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const handleItemClick = (itemId: string) => {
-    setSelectedItemId(itemId);
-  };
-
   return (
     <main className="p-8">
       <h3 className="text-3xl font-bold mb-4">

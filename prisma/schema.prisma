@@ -340,7 +340,7 @@ model facturaitems {
 
   @@index([CodigoArticulo], map: "CodigoArticulo")
   @@index([DocumentoTipo, DocumentoSucursal, DocumentoNumero], map: "DocumentoTipo")
-  @@ignore
+  @@id([DocumentoTipo, DocumentoSucursal, DocumentoNumero])
 }
 
 model gastoscabeza {

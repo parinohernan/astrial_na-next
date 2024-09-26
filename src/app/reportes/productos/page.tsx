@@ -1,12 +1,12 @@
-import React from "react";
+"use client";
 
-const ReportesProductos: React.FC = () => {
+import ArticulosList from "../../components/Articulos/AlticulosList";
+
+export default function Home() {
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">Esta es la vista 2</h2>
-      {/* Contenido de la vista */}
-    </div>
+    <main>
+      <h1>Astial NA App</h1>
+      <ArticulosList />
+    </main>
   );
-};
-
-export default ReportesProductos;
+}

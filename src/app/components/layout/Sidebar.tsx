@@ -20,7 +20,23 @@ const Sidebar: React.FC<SidebarProps> = ({ initialExpanded }) => {
 
   const options: Option[] = [
     { id: 1, name: "Opción 1", path: "/opcion1" },
-    { id: 2, name: "Opción 2", path: "/opcion2" },
+    {
+      id: 2,
+      name: "Utilidades",
+      path: "/utilidades/",
+      subMenu: [
+        {
+          id: 21,
+          name: "actualizar precios",
+          path: "/utilidades/actualizar-precios",
+        },
+        {
+          id: 22,
+          name: "desde planilla",
+          path: "/utilidades/cargar-desde-planilla",
+        },
+      ],
+    },
     {
       id: 3,
       name: "Reportes",
