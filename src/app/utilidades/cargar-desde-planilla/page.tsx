@@ -2,12 +2,24 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
+import ActualizarPreciosModal from "@/app/components/ActualizarPreciosModal";
 
 const CargarDesdePlanilla: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [columns, setColumns] = useState<string[]>([]);
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [data, setData] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [resultadosActualizacion, setResultadosActualizacion] = useState<
+    Array<{
+      codigo: string;
+
+      descripcionExcel: string;
+      descripcionBD: string;
+      precioCostoExcel: number;
+      precioCostoBD: number;
+    }>
+  >([]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -59,6 +71,49 @@ const CargarDesdePlanilla: React.FC = () => {
     setData((prevData) => prevData.filter((_, index) => index !== rowIndex));
   };
 
+  const handleActualizarPrecios = async () => {
+    try {
+      // Asumiendo que la primera columna contiene los códigos de proveedor artículo
+      const codigosProveedorArticulo = filteredData.map((row) => row[0]);
+
+      const response = await fetch("/api/articulos-por-proveedor", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ codigosProveedorArticulo }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al obtener artículos");
+      }
+
+      const articulosBD = await response.json();
+
+      // Comparar los datos del Excel con los de la base de datos
+      const resultados = filteredData.map((row) => {
+        const codigoProveedorArticulo = row[0];
+        const articuloBD = articulosBD.find(
+          (a: any) => a.ProveedorArticuloCodigo === codigoProveedorArticulo
+        );
+
+        return {
+          codigo: articuloBD ? articuloBD.Codigo : "No encontrado",
+          descripcionExcel: row[columns.indexOf("Descripcion")],
+          descripcionBD: articuloBD ? articuloBD.Descripcion : "No encontrado",
+          precioCostoExcel: parseFloat(row[columns.indexOf("PrecioCosto")]),
+          precioCostoBD: articuloBD ? articuloBD.PrecioCosto : 0,
+        };
+      });
+
+      setResultadosActualizacion(resultados);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error("Error:", error);
+      // Manejar el error (por ejemplo, mostrar un mensaje al usuario)
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Cargar desde Lista Excel</h1>
@@ -105,12 +160,20 @@ const CargarDesdePlanilla: React.FC = () => {
               </button>
             ))}
           </div>
-          <button
-            onClick={handleDiscardFile}
-            className="bg-red-500 text-white px-4 py-2 rounded"
-          >
-            Descartar archivo
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleDiscardFile}
+              className="bg-red-500 text-white px-4 py-2 rounded"
+            >
+              Descartar archivo
+            </button>
+            <button
+              onClick={handleActualizarPrecios}
+              className="bg-green-500 text-white px-4 py-2 rounded"
+            >
+              Actualizar precios
+            </button>
+          </div>
         </div>
       )}
 
@@ -154,6 +217,12 @@ const CargarDesdePlanilla: React.FC = () => {
           </table>
         </div>
       )}
+
+      <ActualizarPreciosModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        resultados={resultadosActualizacion}
+      />
     </div>
   );
 };
