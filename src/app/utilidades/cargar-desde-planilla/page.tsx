@@ -65,6 +65,10 @@ const CargarDesdePlanilla: React.FC = () => {
     setFilteredData([]); // Reiniciar los datos filtrados
   };
 
+  const handleDeleteRow = (rowIndex: number) => {
+    handleEliminar(rowIndex, setFilteredData); // Llamar al handler con el índice y la función de estado
+  };
+
   const handleBuscarRelacionados = async () => {
     try {
       const codigosProveedorArticulo = filteredData.map((row) =>
