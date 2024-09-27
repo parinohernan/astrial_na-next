@@ -5,31 +5,28 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
-    const { codigosProveedorArticulo } = await request.json();
+    const { codigosProveedorArticulo, proveedorCodigo } = await request.json();
 
-    if (!Array.isArray(codigosProveedorArticulo)) {
+    if (!Array.isArray(codigosProveedorArticulo) || !proveedorCodigo) {
       return NextResponse.json(
         { error: "Formato de datos inválido" },
         { status: 400 }
       );
     }
 
-    // Convertir todos los códigos a string
-    const codigosString = codigosProveedorArticulo.map((codigo) =>
-      String(codigo)
-    );
-
     const articulos = await prisma.t_articulos.findMany({
       where: {
         ProveedorArticuloCodigo: {
-          in: codigosString,
+          in: codigosProveedorArticulo,
         },
+        ProveedorCodigo: proveedorCodigo, // Filtrar por ProveedorCodigo
       },
       select: {
         Codigo: true,
         Descripcion: true,
         PrecioCosto: true,
         ProveedorArticuloCodigo: true,
+        ProveedorCodigo: true, // Asegúrate de incluir ProveedorCodigo si lo necesitas
       },
     });
 
