@@ -8,6 +8,8 @@ import {
   handleVer,
   handleActualizar,
 } from "@/app/utilidades/handlers/index";
+import AlertModal from "@/app/components/AlertModal/index";
+import Spinner from "@/app/components/Spinner/index";
 
 const CargarDesdePlanilla: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -15,17 +17,9 @@ const CargarDesdePlanilla: React.FC = () => {
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [data, setData] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [resultadosActualizacion, setResultadosActualizacion] = useState<
-    Array<{
-      codigo: string;
-      descripcionExcel: string;
-      descripcionBD: string;
-      precioCostoExcel: number;
-      precioCostoBD: number;
-    }>
-  >([]);
+  const [loading, setLoading] = useState(false);
   const [filteredData, setFilteredData] = useState<any[]>([]);
-  const [selectedProveedor, setSelectedProveedor] = useState<any>(null); // Estado para el proveedor seleccionado
+  const [selectedProveedor, setSelectedProveedor] = useState<any>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -50,6 +44,8 @@ const CargarDesdePlanilla: React.FC = () => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   const handleColumnSelect = (column: string) => {
+    console.log("column ", column);
+
     setSelectedColumns((prev) =>
       prev.includes(column)
         ? prev.filter((c) => c !== column)
@@ -62,14 +58,15 @@ const CargarDesdePlanilla: React.FC = () => {
     setColumns([]);
     setSelectedColumns([]);
     setData([]);
-    setFilteredData([]); // Reiniciar los datos filtrados
+    setFilteredData([]);
   };
 
   const handleDeleteRow = (rowIndex: number) => {
-    handleEliminar(rowIndex, setFilteredData); // Llamar al handler con el índice y la función de estado
+    handleEliminar(rowIndex, setFilteredData);
   };
 
   const handleBuscarRelacionados = async () => {
+    setLoading(true);
     try {
       const codigosProveedorArticulo = filteredData.map((row) =>
         String(row[0])
@@ -82,7 +79,7 @@ const CargarDesdePlanilla: React.FC = () => {
         },
         body: JSON.stringify({
           codigosProveedorArticulo,
-          proveedorCodigo: selectedProveedor?.Codigo, // Enviar el ProveedorCodigo
+          proveedorCodigo: selectedProveedor?.Codigo,
         }),
       });
 
@@ -92,7 +89,6 @@ const CargarDesdePlanilla: React.FC = () => {
 
       const articulosBD = await response.json();
 
-      // Filtrar los datos para mostrar solo los relacionados
       const relacionados = filteredData
         .map((row) => {
           const codigo = String(row[0]);
@@ -102,20 +98,14 @@ const CargarDesdePlanilla: React.FC = () => {
           );
 
           if (articulo) {
-            const precioCostoExcel = parseFloat(
-              row[columns.indexOf("Precio1")]
-            ).toFixed(2); // Redondear a 2 decimales
-            const precioCostoBD = parseFloat(articulo.PrecioCosto).toFixed(2); // Convertir a float con dos decimales
-
+            const precioCostoBD = parseFloat(articulo.PrecioCosto).toFixed(2);
+            const precioIndex = columns.indexOf("precio");
+            const precioCostoExcel = parseFloat(row[precioIndex]).toFixed(2);
             const diferencia = (
               parseFloat(precioCostoBD) - parseFloat(precioCostoExcel)
-            ).toFixed(2); // Redondear a 2 decimales
-            console.log(diferencia);
+            ).toFixed(2);
 
-            const diferenciaNum = parseFloat(diferencia); // Convertir a número
-
-            const precioCambio =
-              diferenciaNum > 0 ? "↑" : diferenciaNum < 0 ? "↓" : "="; // Flechas para indicar el cambio
+            const precioCambio = diferencia;
 
             return {
               ...row,
@@ -124,17 +114,19 @@ const CargarDesdePlanilla: React.FC = () => {
               precioCostoBD: precioCostoBD,
               precioCostoExcel: precioCostoExcel,
               precioCambio: precioCambio,
-              diferencia: diferencia, // Agregar la diferencia
+              diferencia: diferencia,
             };
           }
 
-          return null; // Si no se encuentra el artículo, retorna null
+          return null;
         })
-        .filter(Boolean); // Filtra los nulls
+        .filter(Boolean);
 
       setFilteredData(relacionados);
     } catch (error) {
       console.error("Error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -144,6 +136,9 @@ const CargarDesdePlanilla: React.FC = () => {
 
       {!file && (
         <div className="flex">
+          <div className=" border-dashed border-gray-300 p-4 mb-4 text-center">
+            <ProveedorSelect onSelect={setSelectedProveedor} />
+          </div>
           <div
             {...getRootProps()}
             className="border-2 border-dashed border-gray-300 p-4 mb-4 text-center cursor-pointer"
@@ -158,24 +153,19 @@ const CargarDesdePlanilla: React.FC = () => {
               </p>
             )}
           </div>
-          <ProveedorSelect onSelect={setSelectedProveedor} />{" "}
-          {/* Agrega el nuevo componente aquí */}
         </div>
       )}
 
       {file && columns.length > 0 && (
         <div className="mb-4">
-          <h2 className="text-xl font-semibold mb-2">
-            Archivo cargado: {file.name}
-          </h2>
-          <p>Columnas detectadas: {columns.join(", ")}</p>
-          <p>Número de filas de datos: {data.length}</p>
           {selectedProveedor && (
             <p className="text-lg font-semibold mb-2">
               Proveedor: {selectedProveedor.Codigo} -{" "}
               {selectedProveedor.Descripcion}
             </p>
           )}
+          <p>Archivo cargado: {file.name}</p>
+          <p>Número de filas de datos: {data.length}</p>
           <h3 className="text-lg font-semibold mb-2">
             Selecciona las columnas:
           </h3>
@@ -200,12 +190,6 @@ const CargarDesdePlanilla: React.FC = () => {
               className="bg-red-500 text-white px-4 py-2 rounded"
             >
               Descartar archivo
-            </button>
-            <button
-              // onClick={handleActualizarPrecios}
-              className="bg-green-500 text-white px-4 py-2 rounded"
-            >
-              Actualizar precios
             </button>
             <button
               onClick={handleBuscarRelacionados}
@@ -237,8 +221,7 @@ const CargarDesdePlanilla: React.FC = () => {
                 <th className="border border-gray-300 px-4 py-2">
                   Cambio de Precio
                 </th>
-                <th className="border border-gray-300 px-4 py-2">Acciones</th>{" "}
-                {/* Nueva columna de acciones */}
+                <th className="border border-gray-300 px-4 py-2">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -259,23 +242,23 @@ const CargarDesdePlanilla: React.FC = () => {
                     {row.precioCostoBD}
                   </td>
                   <td className="border border-gray-300 px-4 py-2">
-                    {row.precioCambio} {/* Mostrar el símbolo de cambio */}
+                    {row.precioCambio}
                   </td>
                   <td className="border border-gray-300 px-4 py-2">
                     <button
-                      onClick={() => handleDeleteRow(rowIndex)} // Implementar la función handleEliminar
+                      onClick={() => handleDeleteRow(rowIndex)}
                       className="bg-red-500 text-white px-2 py-1 rounded"
                     >
                       Eliminar
                     </button>
                     <button
-                      onClick={() => handleVer(row)} // Implementar la función handleVer
+                      onClick={() => handleVer(row)}
                       className="bg-blue-500 text-white px-2 py-1 rounded mx-1"
                     >
                       Ver
                     </button>
                     <button
-                      onClick={() => handleActualizar(row)} // Implementar la función handleActualizar
+                      onClick={() => handleActualizar(row)}
                       className="bg-green-500 text-white px-2 py-1 rounded"
                     >
                       Actualizar
@@ -287,6 +270,14 @@ const CargarDesdePlanilla: React.FC = () => {
           </table>
         </div>
       )}
+
+      {loading && <Spinner />}
+
+      <AlertModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        message="Faltan columnas requeridas: 'codigo', 'descripcion' o 'precio'. Por favor, verifica el archivo Excel."
+      />
     </div>
   );
 };

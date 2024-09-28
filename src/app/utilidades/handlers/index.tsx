@@ -15,19 +15,17 @@ export const handleActualizar = async (row: any) => {
   console.log("row", row);
 
   try {
-    const response = await fetch(
-      `/api/articulos/actualizad-costo/${row.codigoBD}`,
-      {
-        // Suponiendo que el códigoBD es único
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          precioCosto: row.precioCostoExcel, // Usar el precio de costo de Excel
-        }),
-      }
-    );
+    const response = await fetch(`/api/articulos/articulo-actualizar-costo`, {
+      // Usar solo el códigoBD en la URL
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        codigoBD: row.codigoBD, // Enviar el códigoBD en el body
+        precioCosto: row.precioCostoExcel, // Enviar el nuevo precio de costo
+      }),
+    });
 
     if (!response.ok) {
       throw new Error("Error al actualizar el precio");

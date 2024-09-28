@@ -39,15 +39,18 @@ const ProveedorSelect: React.FC<ProveedorSelectProps> = ({ onSelect }) => {
   }, []);
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const codigo = event.target.value;
-    const proveedor = proveedores.find((p) => p.Codigo === codigo) || null; // Cambiado a "Codigo"
+    const value = event.target.value;
+    const proveedor =
+      proveedores.find((p) => p.Codigo === value || p.Descripcion === value) ||
+      null; // Cambiado a "Codigo"
     setSelectedProveedor(proveedor);
     onSelect(proveedor);
   };
 
   return (
-    <div className="mb-4">
-      <label className="block mb-2">Selecciona un proveedor:</label>
+    <div className="mb-4 padding p-3">
+      <label className="block mb-2"></label>
+
       <select
         value={selectedProveedor?.Codigo || ""}
         onChange={handleChange}
