@@ -3,6 +3,24 @@ import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
+export async function DELETE(request: Request) {
+  const { id } = await request.json();
+  try {
+    const venta = await prisma.ventas_a_cuenta.delete({
+      where: {
+        id: id,
+      },
+    });
+    return NextResponse.json(venta);
+  } catch (error) {
+    console.error("Error al eliminar la venta a cuenta:", error);
+    return NextResponse.json(
+      { error: "Error al eliminar la venta a cuenta" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const {
@@ -14,14 +32,13 @@ export async function POST(request: Request) {
       fechaLimite,
     } = await request.json();
 
-    // Convertir las fechas de string a objetos Date
     const fechaDate = new Date(fecha);
     const fechaLimiteDate = new Date(fechaLimite);
 
     const nuevaVenta = await prisma.ventas_a_cuenta.create({
       data: {
         codigoArticulo,
-        cantidad: parseFloat(cantidad), // Cambiado a parseFloat para manejar Float
+        cantidad: parseFloat(cantidad),
         codigoCliente,
         observacion,
         fecha: fechaDate,
@@ -29,7 +46,8 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(nuevaVenta);
+    // Devolvemos el ID del nuevo artículo insertado
+    return NextResponse.json({ id: nuevaVenta.id });
   } catch (error) {
     console.error("Error al crear una nueva venta a cuenta:", error);
     return NextResponse.json(
@@ -46,6 +64,7 @@ export async function GET(request: Request) {
   try {
     const ventasACuenta = await prisma.ventas_a_cuenta.findMany({
       select: {
+        id: true,
         codigoArticulo: true,
         fecha: true,
         cantidad: true,

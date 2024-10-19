@@ -1,8 +1,9 @@
 "use client";
 import React, { useMemo, useState, useEffect } from "react";
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
-
-import { Button, TextField } from "@mui/material";
+import { Button, TextField, IconButton } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import { useVentasACuenta } from "@/hooks/useVentasACuenta";
 import { useArticulosByCode } from "@/hooks/useArticulosByCode";
 import { ventas_a_cuenta } from "@prisma/client";
@@ -17,6 +18,7 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
   const [codigoCliente, setCodigoCliente] = useState(cliente);
   const { data, refetch } = useVentasACuenta(codigoCliente);
   const [listaArticulos, setListaArticulos] = useState<ventas_a_cuenta[]>([]);
+  // const [articuloData, setArticuloData] = useState<any>(null);
 
   useEffect(() => {
     setCodigoCliente(cliente);
@@ -26,6 +28,11 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
   }, [cliente, data]);
 
   const columns: MRT_ColumnDef<any>[] = [
+    {
+      accessorKey: "id",
+      header: "ID",
+      size: 50,
+    },
     {
       accessorKey: "codigoArticulo",
       header: "Codigo Articulo",
@@ -77,6 +84,20 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
       },
       size: 50,
     },
+    {
+      accessorKey: "actions",
+      header: "Acciones",
+      Cell: ({ row }) => (
+        <div>
+          <IconButton onClick={() => handleEdit(row.original)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton onClick={() => handleDelete(row.original)}>
+            <DeleteIcon />
+          </IconButton>
+        </div>
+      ),
+    },
   ];
 
   const [nuevoArticulo, setNuevoArticulo] = useState<any>({
@@ -84,6 +105,7 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
     cantidad: 0,
     codigoCliente: cliente,
     observacion: "",
+    Descripcion: "",
     fecha: new Date().toISOString().split("T")[0], // Cambiado a string
     fechaLimite: new Date(new Date().setDate(new Date().getDate() + 30))
       .toISOString()
@@ -99,44 +121,84 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
   useEffect(() => {
     if (articuloData && !isLoading && !error) {
       console.log("articuloData", articuloData);
+      setArticuloDescripcion(articuloData.Descripcion);
     }
   }, [articuloData, isLoading, error]);
 
+  const [articuloDescripcion, setArticuloDescripcion] = useState("");
+
   const handleAgregarFila = async () => {
     if (articuloData && !isLoading && !error) {
-      console.log("articuloData", articuloData);
       const nuevoArticuloConDatos = {
         ...nuevoArticulo,
         descripcion: articuloData.Descripcion || "Artículo desconocido",
-        // precio: articuloData.Precio || 0,
       };
 
-      setListaArticulos((prev) => [...prev, nuevoArticuloConDatos]);
-      // Reiniciar nuevo artículo
-      setNuevoArticulo({
-        codigoArticulo: "",
-        cantidad: 0,
-        codigoCliente: cliente,
-        observacion: "",
-        fecha: new Date().toISOString().split("T")[0], // Cambiado a string
-        fechaLimite: new Date(new Date().setDate(new Date().getDate() + 30))
-          .toISOString()
-          .split("T")[0], // Cambiado a string - 30 días
-      });
       //grabar en la base de datos
       nuevoArticuloConDatos.codigoCliente = cliente;
 
-      const response = await fetch("/api/ventasACuenta", {
-        method: "POST",
-        body: JSON.stringify(nuevoArticuloConDatos),
-      });
-      console.log("response", response);
+      try {
+        const response = await fetch("/api/ventasACuenta", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(nuevoArticuloConDatos),
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al insertar el artículo");
+        }
+
+        const data = await response.json();
+
+        // Añadir el ID recibido al nuevo artículo
+        const articuloConId = { ...nuevoArticuloConDatos, id: data.id };
+
+        setListaArticulos((prev) => [...prev, articuloConId]);
+
+        // Reiniciar nuevo artículo
+        setNuevoArticulo({
+          codigoArticulo: "",
+          cantidad: 0,
+          codigoCliente: cliente,
+          observacion: "",
+          descripcion: "",
+          fecha: new Date().toISOString().split("T")[0],
+          fechaLimite: new Date(new Date().setDate(new Date().getDate() + 30))
+            .toISOString()
+            .split("T")[0],
+        });
+        setArticuloDescripcion(""); // Limpiar la descripción del artículo
+        // setCodigoArticuloInput(""); // Limpiar el input del código de artículo
+      } catch (error) {
+        console.error("Error al agregar el artículo:", error);
+        // Aquí puedes manejar el error, por ejemplo, mostrando un mensaje al usuario
+      }
     }
   };
 
+  const handleEdit = (articulo: any) => {
+    // Lógica para editar el artículo
+    console.log("Editar", articulo);
+  };
+
+  const handleDelete = async (articulo: any) => {
+    console.log("Eliminar", articulo, listaArticulos);
+    const response = await fetch("/api/ventasACuenta", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: articulo.id }),
+    });
+    console.log("delete response", response);
+    refetch();
+  };
+
   return (
-    <div>
-      <div>
+    <div className="border border-gray-200 rounded-lg">
+      <div className="flex gap-4 p-4">
         <TextField
           label="Código"
           value={nuevoArticulo.codigoArticulo}
@@ -194,7 +256,23 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
             shrink: true,
           }}
         />
-        <Button onClick={handleAgregarFila}>Agregar</Button>
+      </div>
+      <div className="flex wrap items-center p-4 mb-4">
+        <Button variant="contained" color="primary" onClick={handleAgregarFila}>
+          Agregar
+        </Button>
+        <h3 className="pl-4">
+          {articuloData ? (
+            <h3>
+              " "
+              {articuloDescripcion !== ""
+                ? articuloDescripcion
+                : "No existe el articulo"}
+            </h3>
+          ) : (
+            <h3 className="text-red-500">"No existe el articulo"</h3>
+          )}
+        </h3>
       </div>
 
       <MaterialReactTable
