@@ -23,6 +23,7 @@ export const useArticulosByCode = (codigo: string) => {
         setError(err as Error);
       } finally {
         setIsLoading(false);
+        setError(null);
       }
     };
 

@@ -3,25 +3,74 @@ import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
+export async function POST(request: Request) {
+  try {
+    const {
+      codigoArticulo,
+      cantidad,
+      codigoCliente,
+      observacion,
+      fecha,
+      fechaLimite,
+    } = await request.json();
+
+    // Convertir las fechas de string a objetos Date
+    const fechaDate = new Date(fecha);
+    const fechaLimiteDate = new Date(fechaLimite);
+
+    const nuevaVenta = await prisma.ventas_a_cuenta.create({
+      data: {
+        codigoArticulo,
+        cantidad: parseFloat(cantidad), // Cambiado a parseFloat para manejar Float
+        codigoCliente,
+        observacion,
+        fecha: fechaDate,
+        fechaLimite: fechaLimiteDate,
+      },
+    });
+
+    return NextResponse.json(nuevaVenta);
+  } catch (error) {
+    console.error("Error al crear una nueva venta a cuenta:", error);
+    return NextResponse.json(
+      { error: "Error al crear una nueva venta a cuenta" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const codigoCliente = searchParams.get("codigoCliente") || "C2006";
 
   try {
-    console.log("GET /api/ventasACuenta  CLIENTE: ", codigoCliente);
     const ventasACuenta = await prisma.ventas_a_cuenta.findMany({
       select: {
         codigoArticulo: true,
         fecha: true,
-        cantitad: true,
+        cantidad: true,
         observacion: true,
+        t_articulos: {
+          select: {
+            Descripcion: true,
+            PrecioCostoMasImp: true,
+          },
+        },
       },
       where: {
         codigoCliente: codigoCliente,
       },
     });
 
-    return NextResponse.json(ventasACuenta);
+    const resultadoFormateado = ventasACuenta.map((venta) => ({
+      ...venta,
+      descripcion: venta.t_articulos?.Descripcion,
+      precio: venta.t_articulos?.PrecioCostoMasImp,
+      ...venta,
+      t_articulos: undefined,
+    }));
+
+    return NextResponse.json(resultadoFormateado);
   } catch (error) {
     console.error("Error al obtener ventas a cuenta:", error);
     return NextResponse.json(
@@ -30,39 +79,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
-// export async function GET(request: Request) {
-//     const { searchParams } = new URL(request.url);
-//     const termino = searchParams.get("termino") || "";
-
-//     try {
-//       const clientes = await prisma.t_clientes.findMany({
-//         select: {
-//           Codigo: true,
-//           Descripcion: true,
-//           Cuit: true,
-//           Calle: true,
-//           Numero: true,
-//           TipoDocumento: true,
-//           CategoriaIva: true,
-//           ImporteDeuda: true,
-//         },
-//         where: {
-//           OR: [
-//             { Codigo: { contains: termino } },
-//             { Descripcion: { contains: termino } },
-//             // Start of Selection
-//           ],
-//         },
-//         take: 50, // Limita los resultados para mejorar el rendimiento
-//       });
-
-//       return NextResponse.json(clientes);
-//     } catch (error) {
-//       console.error("Error al obtener clientes:", error);
-//       return NextResponse.json(
-//         { error: "Error al obtener clientes" },
-//         { status: 500 }
-//       );
-//     }
-//   }

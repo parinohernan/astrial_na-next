@@ -1096,8 +1096,10 @@ model t_rubros {
 model ventas_a_cuenta {
   id             Int          @id @default(autoincrement())
   codigoCliente  String?      @db.VarChar(255)
+  codigoArticuloProveedor String?      @db.VarChar(255)
   codigoArticulo String?      @db.VarChar(255)
-  cantitad       Float?
+  cantidad       Float?
+  Descripcion    String?      @db.VarChar(255)
   observacion    String?      @db.VarChar(255)
   fecha          DateTime?    @db.Date
   fechaLimite    DateTime?    @db.Date
