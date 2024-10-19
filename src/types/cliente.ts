@@ -1,5 +1,10 @@
 export interface Cliente {
   Codigo: string;
-  RazonSocial: string;
   Descripcion: string;
+  Cuit: string;
+  Calle: string;
+  Numero: string;
+  TipoDocumento: string;
+  CategoriaIva: string;
+  ImporteDeuda: number;
 }

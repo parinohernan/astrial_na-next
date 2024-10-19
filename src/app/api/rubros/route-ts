@@ -1,0 +1,26 @@
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export async function GET() {
+  // console.log("buscando proveedores");
+
+  try {
+    const rubros = await prisma.t_rubros.findMany({
+      select: {
+        Codigo: true,
+        Descripcion: true,
+      },
+    });
+    // console.log(proveedores);
+
+    return NextResponse.json(rubros);
+  } catch (error) {
+    console.error("Error al obtener rubros:", error);
+    return NextResponse.json(
+      { error: "Error al obtener rubros" },
+      { status: 500 }
+    );
+  }
+}

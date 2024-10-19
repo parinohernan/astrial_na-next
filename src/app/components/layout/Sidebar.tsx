@@ -46,7 +46,16 @@ const Sidebar: React.FC<SidebarProps> = ({ initialExpanded }) => {
         { id: 32, name: "Reportes de Productos", path: "/reportes/productos" },
       ],
     },
-    { id: 4, name: "Opción 4", path: "/opcion4" },
+    {
+      id: 4,
+      name: "Ventas",
+      path: "/ventas",
+      subMenu: [
+        { id: 41, name: "Factura", path: "/ventas/factura" },
+        { id: 42, name: "Informe", path: "/ventas/informe" },
+        { id: 43, name: "Venta a cuenta", path: "/ventas/venta_a_cuenta" },
+      ],
+    },
   ];
 
   const toggleSidebar = () => {

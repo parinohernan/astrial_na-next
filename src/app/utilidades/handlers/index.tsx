@@ -1,3 +1,23 @@
+export const handleActualizarTodos = async (
+  data: any[],
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>
+) => {
+  setLoading(true); // Mostrar spinner al iniciar la actualización
+  try {
+    for (const row of data) {
+      console.log(row);
+
+      await handleActualizar(row); // Llama a handleActualizar para cada fila
+    }
+    alert("Todos los artículos han sido actualizados."); // Mensaje de éxito
+  } catch (error) {
+    console.error("Error al actualizar todos los artículos:", error);
+    alert("Ocurrió un error al actualizar los artículos."); // Mensaje de error
+  } finally {
+    setLoading(false); // Ocultar spinner después de la actualización
+  }
+};
+
 export const handleEliminar = (
   rowIndex: number,
   setFilteredData: React.Dispatch<React.SetStateAction<any[]>>
@@ -12,8 +32,6 @@ export const handleVer = (row: any) => {
 };
 
 export const handleActualizar = async (row: any) => {
-  console.log("row", row);
-
   try {
     const response = await fetch(`/api/articulos/articulo-actualizar-costo`, {
       // Usar solo el códigoBD en la URL
@@ -30,9 +48,7 @@ export const handleActualizar = async (row: any) => {
     if (!response.ok) {
       throw new Error("Error al actualizar el precio");
     }
-
     const updatedArticulo = await response.json();
-    console.log("Artículo actualizado:", updatedArticulo);
   } catch (error) {
     console.error("Error:", error);
   }

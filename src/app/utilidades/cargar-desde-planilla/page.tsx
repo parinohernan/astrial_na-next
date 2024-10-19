@@ -7,6 +7,7 @@ import {
   handleEliminar,
   handleVer,
   handleActualizar,
+  handleActualizarTodos,
 } from "@/app/utilidades/handlers/index";
 import AlertModal from "@/app/components/AlertModal/index";
 import Spinner from "@/app/components/Spinner/index";
@@ -44,13 +45,15 @@ const CargarDesdePlanilla: React.FC = () => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   const handleColumnSelect = (column: string) => {
-    console.log("column ", column);
-
-    setSelectedColumns((prev) =>
-      prev.includes(column)
-        ? prev.filter((c) => c !== column)
-        : [...prev, column]
-    );
+    setLoading(true); // Mostrar spinner al seleccionar columna
+    setTimeout(() => {
+      setSelectedColumns((prev) =>
+        prev.includes(column)
+          ? prev.filter((c) => c !== column)
+          : [...prev, column]
+      );
+      setLoading(false); // Ocultar spinner después de la selección
+    }, 1000); // Asegúrate de que el spinner se muestre al menos durante 1 segundo
   };
 
   const handleDiscardFile = () => {
@@ -63,6 +66,10 @@ const CargarDesdePlanilla: React.FC = () => {
 
   const handleDeleteRow = (rowIndex: number) => {
     handleEliminar(rowIndex, setFilteredData);
+  };
+
+  const handleActualizarTodosClick = () => {
+    handleActualizarTodos(filteredData, setLoading); // Llama al handler con los datos y el estado de loading
   };
 
   const handleBuscarRelacionados = async () => {
@@ -102,7 +109,7 @@ const CargarDesdePlanilla: React.FC = () => {
             const precioIndex = columns.indexOf("precio");
             const precioCostoExcel = parseFloat(row[precioIndex]).toFixed(2);
             const diferencia = (
-              parseFloat(precioCostoBD) - parseFloat(precioCostoExcel)
+              parseFloat(precioCostoExcel) - parseFloat(precioCostoBD)
             ).toFixed(2);
 
             const precioCambio = diferencia;
@@ -197,9 +204,16 @@ const CargarDesdePlanilla: React.FC = () => {
             >
               Buscar relacionados
             </button>
+            <button
+              onClick={handleActualizarTodosClick}
+              className="bg-green-500 text-white px-4 py-2 rounded"
+            >
+              Actualizar todos
+            </button>
           </div>
         </div>
       )}
+      {loading && <Spinner />}
       {selectedColumns.length > 0 && filteredData.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-2">Contenido:</h3>
@@ -242,7 +256,11 @@ const CargarDesdePlanilla: React.FC = () => {
                     {row.precioCostoBD}
                   </td>
                   <td className="border border-gray-300 px-4 py-2">
-                    {row.precioCambio}
+                    {row.precioCambio < 0 ? (
+                      <p> - {row.precioCambio}</p>
+                    ) : (
+                      <p> + {row.precioCambio}</p>
+                    )}
                   </td>
                   <td className="border border-gray-300 px-4 py-2">
                     <button
