@@ -146,9 +146,6 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
               codigoArticulo: e.target.value,
             })
           }
-          onBlur={(e) => {
-            console.log("codigoArticulo", e.target.value);
-          }}
         />
         <TextField
           label="Cantidad"
