@@ -68,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ initialExpanded }) => {
 
   return (
     <aside
-      className={`bg-gray-800 text-white min-h-screen p-4 transition-all duration-300 ease-in-out`}
+      className={`font-roboto bg-blue-200 text-black-900 min-h-screen p-4 transition-all duration-300 ease-in-out`}
     >
       <nav>
         <button onClick={toggleSidebar}>☰</button>
@@ -79,7 +79,7 @@ const Sidebar: React.FC<SidebarProps> = ({ initialExpanded }) => {
                 <>
                   <button
                     onClick={() => toggleSubmenu(option.id)}
-                    className="hover:text-blue-300 block py-2 w-full text-left"
+                    className="font-roboto hover:bg-blue-600 block py-2 w-full text-left"
                   >
                     {option.name}
                   </button>
@@ -89,7 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({ initialExpanded }) => {
                         <li key={subItem.id}>
                           <Link
                             href={subItem.path}
-                            className="hover:text-blue-300 block py-2"
+                            className="font-roboto hover:bg-blue-600 block py-2"
                           >
                             {subItem.name}
                           </Link>

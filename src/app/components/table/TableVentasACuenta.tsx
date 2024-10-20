@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   MaterialReactTable,
   type MRT_ColumnDef,
@@ -24,8 +24,8 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
   const [codigoCliente, setCodigoCliente] = useState(cliente?.value || "");
   const { data, refetch } = useVentasACuenta(codigoCliente);
   const [listaArticulos, setListaArticulos] = useState<ventas_a_cuenta[]>([]);
-  // const [articuloData, setArticuloData] = useState<any>(null);
   const [editingRow, setEditingRow] = useState<number | null>(null);
+  const [selectedRows, setSelectedRows] = useState<number[]>([]);
 
   useEffect(() => {
     setCodigoCliente(cliente?.value);
@@ -35,13 +35,26 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
 
   const columns: MRT_ColumnDef<any>[] = [
     {
+      accessorKey: "select",
+      header: "",
+      size: 50,
+      Cell: ({ row }) => (
+        <input
+          type="checkbox"
+          checked={selectedRows.includes(row.original.id)}
+          onChange={() => handleRowSelection(row.original.id)}
+        />
+      ),
+    },
+    {
       accessorKey: "id",
       header: "ID",
       size: 50,
+      enableHiding: true,
     },
     {
       accessorKey: "codigoArticulo",
-      header: "Codigo Articulo",
+      header: "Codigo",
       size: 50,
     },
     {
@@ -174,17 +187,13 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
           },
           body: JSON.stringify(nuevoArticuloConDatos),
         });
-
         if (!response.ok) {
           throw new Error("Error al insertar el artículo");
         }
-
         const data = await response.json();
         // Añadir el ID recibido al nuevo artículo
         const articuloConId = { ...nuevoArticuloConDatos, id: data.id };
-
         setListaArticulos((prev) => [...prev, articuloConId]);
-
         // Reiniciar nuevo artículo
         setNuevoArticulo({
           codigoArticulo: "",
@@ -251,6 +260,37 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
       body: JSON.stringify({ id: articulo.id }),
     });
     refetch();
+  };
+
+  const handleRowSelection = (id: number) => {
+    setSelectedRows((prev) =>
+      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedRows.length === listaArticulos.length) {
+      setSelectedRows([]);
+    } else {
+      setSelectedRows(listaArticulos.map((articulo) => articulo.id));
+    }
+  };
+
+  const handleFacturarSeleccionados = () => {
+    // Implementar lógica para facturar los artículos seleccionados
+    console.log("Facturar seleccionados:", selectedRows);
+    //paso 1 crear la factura
+
+    //paso 2 eliminar los artículos seleccionados de la tabla ventas a cuenta
+    //paso 3 actualizar el estado de la tabla
+    refetch();
+  };
+
+  const handleFacturarTodos = () => {
+    // seleccionar todos los artículos
+    setSelectedRows(listaArticulos.map((articulo) => articulo.id));
+    //facturar seleccionados
+    handleFacturarSeleccionados();
   };
 
   const localization: Partial<MRT_Localization> = {
@@ -329,9 +369,34 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
         </Button>
       </div>
 
+      <div className="flex gap-4 p-4">
+        <Button variant="contained" color="primary" onClick={handleSelectAll}>
+          {selectedRows.length === listaArticulos.length
+            ? "Deseleccionar todos"
+            : "Seleccionar todos"}
+        </Button>
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={handleFacturarSeleccionados}
+        >
+          Facturar Seleccionados
+        </Button>
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={handleFacturarTodos}
+        >
+          Facturar Todos
+        </Button>
+      </div>
+
       <MaterialReactTable
         columns={columns}
         data={listaArticulos.reverse()}
+        initialState={{
+          columnVisibility: { id: false, codigoArticulo: false },
+        }}
         enableColumnActions={false}
         enableColumnFilters={false}
         enablePagination={false}
