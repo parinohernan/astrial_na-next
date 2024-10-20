@@ -20,6 +20,27 @@ export async function DELETE(request: Request) {
     );
   }
 }
+export async function PATCH(request: Request) {
+  try {
+    const { id, ...data } = await request.json();
+    console.log("data", data);
+    const venta = await prisma.ventas_a_cuenta.update({
+      where: { id },
+      data: {
+        cantidad: data.cantidad,
+        fecha: data.fecha,
+        fechaLimite: data.fechaLimite,
+      },
+    });
+    return NextResponse.json(venta);
+  } catch (error) {
+    console.error("Error al actualizar la venta a cuenta:", error);
+    return NextResponse.json(
+      { error: "Error al actualizar la venta a cuenta" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -59,7 +80,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const codigoCliente = searchParams.get("codigoCliente") || "C2006";
+  const codigoCliente = searchParams.get("codigoCliente");
 
   try {
     const ventasACuenta = await prisma.ventas_a_cuenta.findMany({
@@ -67,6 +88,7 @@ export async function GET(request: Request) {
         id: true,
         codigoArticulo: true,
         fecha: true,
+        fechaLimite: true,
         cantidad: true,
         observacion: true,
         t_articulos: {

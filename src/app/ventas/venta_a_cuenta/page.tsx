@@ -1,35 +1,39 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { useClientes } from "@/hooks/useClientes";
-import ClientesSelect from "@/app/components/select/ClientesSelect";
-import ComprobanteSelect from "@/app/components/select/ComprobanteSelect";
-import ArticulosList from "@/app/components/select/ArticulosList";
-import Totales from "@/app/components/ui/elementos/Totales";
-import ModalTipoPago from "@/app/components/modal/ModalTipoPago";
+import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import { TableVentasACuenta } from "@/app/components/table/TableVentasACuenta";
 import { Button } from "@mui/material";
 
+const ClientesSelect = dynamic(
+  () => import("@/app/components/select/ClientesSelect"),
+  { ssr: false }
+);
+
 const Factura: React.FC = () => {
-  const [cliente, setCliente] = useState<string | null>(null);
+  const [cliente, setCliente] = useState<any>(null);
   const [mostrarSelectCliente, setMostrarSelectCliente] = useState(true);
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Ventas A Cuenta</h2>
-      <div className="flex justify-between items-center mb-4">
-        {mostrarSelectCliente && <ClientesSelect onSelect={setCliente} />}
-        {cliente && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => setMostrarSelectCliente(!mostrarSelectCliente)}
-          >
-            {mostrarSelectCliente ? "Ocultar Clientes" : "Cambiar cliente"}
-          </Button>
+      <div className="border border-gray-200 rounded-lg">
+        {mostrarSelectCliente ? (
+          <ClientesSelect onSelect={setCliente} />
+        ) : (
+          <h3 className="text-lg font-bold">Cliente: {cliente?.label}</h3>
+        )}
+        {cliente?.label && (
+          <div className="flex justify-start ml-4 mb-4">
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => setMostrarSelectCliente(!mostrarSelectCliente)}
+            >
+              {mostrarSelectCliente ? "Ocultar Cliente" : "Cambiar cliente"}
+            </Button>
+          </div>
         )}
       </div>
-
-      <TableVentasACuenta cliente={cliente} />
+      {cliente?.label && <TableVentasACuenta cliente={cliente} />}
     </div>
   );
 };

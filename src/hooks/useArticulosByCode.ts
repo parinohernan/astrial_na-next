@@ -17,7 +17,6 @@ export const useArticulosByCode = (codigo: string) => {
           throw new Error("Error al obtener artículos");
         }
         const result = await response.json();
-        console.log(result, "result");
         setData(result);
       } catch (err) {
         setError(err as Error);

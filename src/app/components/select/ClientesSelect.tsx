@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useClientes } from "@/hooks/useClientes";
 import { Cliente } from "@/types/cliente";
 import Select from "react-select";
-
 interface ClientesSelectProps {
   onSelect?: (cliente: string) => void;
 }
@@ -18,8 +17,9 @@ const ClientesSelect: React.FC<ClientesSelectProps> = ({ onSelect }) => {
     const cliente =
       clientes?.find((c) => c.Codigo === opcionSeleccionada.value) || null;
     setClienteSeleccionado(cliente);
+
     if (onSelect) {
-      onSelect(opcionSeleccionada.value);
+      onSelect(opcionSeleccionada);
     }
   };
 
@@ -34,9 +34,10 @@ const ClientesSelect: React.FC<ClientesSelectProps> = ({ onSelect }) => {
     })) || [];
 
   return (
-    <div className="bg-gray-400 p-4 rounded-md">
+    <div className="p-4 rounded-md mb-1">
       <div className="w-full">
         <label className="block mb-2">Seleccionar Cliente:</label>
+
         <Select
           options={opcionesClientes}
           onChange={manejarSeleccion}
@@ -53,15 +54,14 @@ const ClientesSelect: React.FC<ClientesSelectProps> = ({ onSelect }) => {
           placeholder="Buscar y seleccionar un cliente"
           noOptionsMessage={() => "No se encontraron clientes"}
           loadingMessage={() => "Cargando clientes..."}
+          instanceId="clientes-select"
         />
       </div>
-
       {error && (
         <p className="mt-4 text-red-600">Error al cargar los clientes</p>
       )}
-
       {clienteSeleccionado && (
-        <div className="mt-6 p-4 bg-white rounded-md shadow-md">
+        <div className="mt-6 p-4 bg-white rounded-md ">
           <h2 className="text-xl font-bold mb-2">Información del Cliente</h2>
           <p>
             <strong>Código:</strong> {clienteSeleccionado.Codigo}

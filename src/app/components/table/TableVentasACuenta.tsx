@@ -1,30 +1,36 @@
 "use client";
 import React, { useMemo, useState, useEffect } from "react";
-import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import {
+  MaterialReactTable,
+  type MRT_ColumnDef,
+  MRT_Localization,
+} from "material-react-table";
 import { Button, TextField, IconButton } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import CancelIcon from "@mui/icons-material/Cancel";
 import { useVentasACuenta } from "@/hooks/useVentasACuenta";
 import { useArticulosByCode } from "@/hooks/useArticulosByCode";
 import { ventas_a_cuenta } from "@prisma/client";
-
+import ArticulosBestSelect from "../select/ArticulosBestSelect";
 interface TableVentasACuentaProps {
-  cliente: any; // Añade esta línea
+  cliente: any;
 }
 
 export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
   cliente,
 }) => {
-  const [codigoCliente, setCodigoCliente] = useState(cliente);
+  const [codigoCliente, setCodigoCliente] = useState(cliente?.value || "");
   const { data, refetch } = useVentasACuenta(codigoCliente);
   const [listaArticulos, setListaArticulos] = useState<ventas_a_cuenta[]>([]);
   // const [articuloData, setArticuloData] = useState<any>(null);
+  const [editingRow, setEditingRow] = useState<number | null>(null);
 
   useEffect(() => {
-    setCodigoCliente(cliente);
+    setCodigoCliente(cliente?.value);
     refetch();
     setListaArticulos((data as any) || []);
-    console.log("articulos", data);
   }, [cliente, data]);
 
   const columns: MRT_ColumnDef<any>[] = [
@@ -42,21 +48,23 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
       accessorKey: "cantidad",
       header: "Cantidad",
       size: 50,
+      Cell: ({ row }) =>
+        editingRow === row.index ? (
+          <TextField
+            type="number"
+            value={row.original.cantidad}
+            onChange={(e) =>
+              handleEditChange(row.index, "cantidad", e.target.value)
+            }
+          />
+        ) : (
+          row.original.cantidad
+        ),
     },
     {
       accessorKey: "descripcion",
       header: "Nombre Articulo",
     },
-    // {
-    //   accessorKey: "precio",
-    //   header: "Precio unitario",
-    //   Cell: ({ cell }) => {
-    //     const precioUnitario = cell.getValue() as number;
-    //     const precioFormateado = precioUnitario?.toFixed(2);
-    //     return precioUnitario ? precioFormateado : "";
-    //   },
-    //   size: 50,
-    // },
     {
       accessorKey: "observacion",
       header: "Observacion",
@@ -64,24 +72,34 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
     {
       accessorKey: "fecha",
       header: "Fecha",
-      Cell: ({ cell }) => {
-        const fecha = cell.getValue();
-        if (typeof fecha === "string") {
-          return new Date(fecha).toLocaleDateString();
-        }
-        return "";
-      },
+      Cell: ({ row }) =>
+        editingRow === row.index ? (
+          <TextField
+            type="date"
+            value={row.original.fecha.split("T")[0]}
+            onChange={(e) =>
+              handleEditChange(row.index, "fecha", e.target.value)
+            }
+          />
+        ) : (
+          new Date(row.original.fecha).toLocaleDateString()
+        ),
     },
     {
       accessorKey: "fechaLimite",
       header: "Fecha Limite",
-      Cell: ({ cell }) => {
-        const fechaLimite = cell.getValue();
-        if (typeof fechaLimite === "string") {
-          return new Date(fechaLimite).toLocaleDateString();
-        }
-        return "";
-      },
+      Cell: ({ row }) =>
+        editingRow === row.index ? (
+          <TextField
+            type="date"
+            value={row.original.fechaLimite.split("T")[0]}
+            onChange={(e) =>
+              handleEditChange(row.index, "fechaLimite", e.target.value)
+            }
+          />
+        ) : (
+          new Date(row.original.fechaLimite).toLocaleDateString()
+        ),
       size: 50,
     },
     {
@@ -89,12 +107,25 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
       header: "Acciones",
       Cell: ({ row }) => (
         <div>
-          <IconButton onClick={() => handleEdit(row.original)}>
-            <EditIcon />
-          </IconButton>
-          <IconButton onClick={() => handleDelete(row.original)}>
-            <DeleteIcon />
-          </IconButton>
+          {editingRow === row.index ? (
+            <>
+              <IconButton onClick={() => handleSave(row.original)}>
+                <SaveIcon />
+              </IconButton>
+              <IconButton onClick={() => setEditingRow(null)}>
+                <CancelIcon />
+              </IconButton>
+            </>
+          ) : (
+            <>
+              <IconButton onClick={() => setEditingRow(row.index)}>
+                <EditIcon />
+              </IconButton>
+              <IconButton onClick={() => handleDelete(row.original)}>
+                <DeleteIcon />
+              </IconButton>
+            </>
+          )}
         </div>
       ),
     },
@@ -103,7 +134,7 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
   const [nuevoArticulo, setNuevoArticulo] = useState<any>({
     codigoArticulo: "",
     cantidad: 0,
-    codigoCliente: cliente,
+    codigoCliente: cliente?.value,
     observacion: "",
     Descripcion: "",
     fecha: new Date().toISOString().split("T")[0], // Cambiado a string
@@ -112,15 +143,13 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
       .split("T")[0], // Cambiado a string y sumar 30 días
   });
 
-  const {
-    data: articuloData,
-    isLoading,
-    error,
-  } = useArticulosByCode(nuevoArticulo.codigoArticulo);
+  const repDataArticulo = useArticulosByCode(nuevoArticulo.codigoArticulo);
+  const articuloData: any = repDataArticulo.data;
+  const isLoading = repDataArticulo.isLoading;
+  const error = repDataArticulo.error;
 
   useEffect(() => {
     if (articuloData && !isLoading && !error) {
-      console.log("articuloData", articuloData);
       setArticuloDescripcion(articuloData.Descripcion);
     }
   }, [articuloData, isLoading, error]);
@@ -135,7 +164,7 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
       };
 
       //grabar en la base de datos
-      nuevoArticuloConDatos.codigoCliente = cliente;
+      nuevoArticuloConDatos.codigoCliente = cliente?.value;
 
       try {
         const response = await fetch("/api/ventasACuenta", {
@@ -151,7 +180,6 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
         }
 
         const data = await response.json();
-
         // Añadir el ID recibido al nuevo artículo
         const articuloConId = { ...nuevoArticuloConDatos, id: data.id };
 
@@ -161,7 +189,7 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
         setNuevoArticulo({
           codigoArticulo: "",
           cantidad: 0,
-          codigoCliente: cliente,
+          codigoCliente: cliente?.value,
           observacion: "",
           descripcion: "",
           fecha: new Date().toISOString().split("T")[0],
@@ -178,13 +206,43 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
     }
   };
 
-  const handleEdit = (articulo: any) => {
-    // Lógica para editar el artículo
-    console.log("Editar", articulo);
+  const handleEditChange = (index: number, field: string, value: string) => {
+    setListaArticulos((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleSave = async (articulo: any) => {
+    try {
+      articulo.codigoCliente = cliente?.value;
+      const articuloToUpdate = {
+        ...articulo,
+        codigoCliente: cliente?.value,
+        cantidad: parseFloat(articulo.cantidad),
+        fecha: new Date(articulo.fecha).toISOString(),
+        fechaLimite: new Date(articulo.fechaLimite).toISOString(),
+      };
+      const response = await fetch(`/api/ventasACuenta`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(articuloToUpdate),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al actualizar el artículo");
+      }
+
+      setEditingRow(null);
+      // Opcionalmente, puedes refrescar los datos aquí
+      refetch();
+    } catch (error) {
+      console.error("Error al guardar los cambios:", error);
+    }
   };
 
   const handleDelete = async (articulo: any) => {
-    console.log("Eliminar", articulo, listaArticulos);
     const response = await fetch("/api/ventasACuenta", {
       method: "DELETE",
       headers: {
@@ -192,14 +250,17 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
       },
       body: JSON.stringify({ id: articulo.id }),
     });
-    console.log("delete response", response);
     refetch();
+  };
+
+  const localization: Partial<MRT_Localization> = {
+    noRecordsToDisplay: "No hay artículos para mostrar",
   };
 
   return (
     <div className="border border-gray-200 rounded-lg">
       <div className="flex gap-4 p-4">
-        <TextField
+        {/* <TextField
           label="Código"
           value={nuevoArticulo.codigoArticulo}
           onChange={(e) =>
@@ -208,71 +269,64 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
               codigoArticulo: e.target.value,
             })
           }
-        />
-        <TextField
-          label="Cantidad"
-          type="number"
-          value={nuevoArticulo.cantidad}
-          onChange={(e) =>
-            setNuevoArticulo({
-              ...nuevoArticulo,
-              cantidad: parseInt(e.target.value) || 0,
-            })
-          }
-        />
-        <TextField
-          label="Observación"
-          value={nuevoArticulo.observacion}
-          onChange={(e) =>
-            setNuevoArticulo({ ...nuevoArticulo, observacion: e.target.value })
-          }
-        />
-        {/* <TextField
-          label="Fecha Facturación"
-          type="date"
-          value={nuevoArticulo.fecha}
-          onChange={(e) =>
-            setNuevoArticulo({
-              ...nuevoArticulo,
-              fecha: e.target.value,
-            })
-          }
-          InputLabelProps={{
-            shrink: true,
-          }}
         /> */}
-        <TextField
-          label="Fecha Límite"
-          type="date"
-          value={nuevoArticulo.fechaLimite}
-          onChange={(e) =>
-            setNuevoArticulo({
-              ...nuevoArticulo,
-              fecha: new Date().toISOString().split("T")[0],
-              fechaLimite: e.target.value,
-            })
-          }
-          InputLabelProps={{
-            shrink: true,
-          }}
-        />
+        <div className="w-1/2">
+          <ArticulosBestSelect
+            onChange={(e: any) =>
+              setNuevoArticulo({
+                ...nuevoArticulo,
+                codigoArticulo: e,
+              })
+            }
+          />
+        </div>
+        <div className="w-1/8">
+          <TextField
+            label="Cant."
+            type="number"
+            value={nuevoArticulo.cantidad}
+            onChange={(e) =>
+              setNuevoArticulo({
+                ...nuevoArticulo,
+                cantidad: parseInt(e.target.value) || 0,
+              })
+            }
+          />
+        </div>
+        <div className="w-4/8">
+          <TextField
+            label="Observación"
+            value={nuevoArticulo.observacion}
+            onChange={(e) =>
+              setNuevoArticulo({
+                ...nuevoArticulo,
+                observacion: e.target.value,
+              })
+            }
+          />
+        </div>
+        <div className="w-3/8">
+          <TextField
+            label="Fecha Límite"
+            type="date"
+            value={nuevoArticulo.fechaLimite}
+            onChange={(e) =>
+              setNuevoArticulo({
+                ...nuevoArticulo,
+                fecha: new Date().toISOString().split("T")[0],
+                fechaLimite: e.target.value,
+              })
+            }
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+        </div>
       </div>
       <div className="flex wrap items-center p-4 mb-4">
         <Button variant="contained" color="primary" onClick={handleAgregarFila}>
           Agregar
         </Button>
-        <h3 className="pl-4">
-          {articuloData ? (
-            <h3>
-              " "
-              {articuloDescripcion !== ""
-                ? articuloDescripcion
-                : "No existe el articulo"}
-            </h3>
-          ) : (
-            <h3 className="text-red-500">"No existe el articulo"</h3>
-          )}
-        </h3>
       </div>
 
       <MaterialReactTable
@@ -283,6 +337,7 @@ export const TableVentasACuenta: React.FC<TableVentasACuentaProps> = ({
         enablePagination={false}
         enableSorting={false}
         muiTableBodyRowProps={{ hover: false }}
+        localization={localization}
       />
     </div>
   );
